@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://fcevysxmtmydscvworfu.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const env = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+const supabaseUrl = env.VITE_SUPABASE_URL || 'https://fcevysxmtmydscvworfu.supabase.co';
+const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjZXZ5c3htdG15ZHNjdndvcmZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMjI2ODIsImV4cCI6MjEwMzU5ODY4Mn0.bKZE5MCP-9jvTp8xJU1glwA-EX7VTvMtbVR6dtrdIws';
 
 export const isSupabaseConfigured = Boolean(
   supabaseUrl && 
@@ -10,17 +11,16 @@ export const isSupabaseConfigured = Boolean(
   supabaseAnonKey.trim().length > 10
 );
 
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
-    })
-  : null;
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined
+  }
+});
 
-// Local persistent store helper for demo resiliency
+// Persistent local helper for offline/cached data features
 export function getStorageItem<T>(key: string, defaultValue: T): T {
   try {
     const item = localStorage.getItem(`kopargaon_${key}`);

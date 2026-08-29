@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
+import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 // Landing & Auth
 import { LandingPage } from './pages/landing/LandingPage';
@@ -54,53 +55,293 @@ export function App() {
       <DataProvider>
         <Router>
           <Routes>
-            {/* Landing & Public Flow */}
+            {/* Landing & Public Flows */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/citizen/login" element={<CitizenLogin />} />
             <Route path="/citizen/register" element={<CitizenRegister />} />
-            <Route path="/citizen/role" element={<RoleSelection />} />
-
-            {/* General Citizen Portal Routes */}
-            <Route path="/citizen" element={<CitizenPortal />} />
-            <Route path="/citizen/general" element={<CitizenPortal />} />
-            <Route path="/citizen/journey" element={<JourneyPlanner />} />
-            <Route path="/citizen/bus-schedules" element={<BusSchedules />} />
-            <Route path="/citizen/map" element={<CitizenLiveMap />} />
-            <Route path="/citizen/report-traffic" element={<ReportTraffic />} />
-            <Route path="/citizen/safety" element={<SafetyAlerts />} />
-            <Route path="/citizen/ev-stations" element={<EVStations />} />
-            <Route path="/citizen/bookings" element={<MyBookings />} />
-            <Route path="/citizen/profile" element={<CitizenProfile />} />
-
-            {/* Farmer Portal & Rural Logistics Routes */}
-            <Route path="/citizen/farmer" element={<FarmerPortal />} />
-            <Route path="/citizen/farmer/send-goods" element={<SendGoods />} />
-            <Route path="/citizen/farmer/transport" element={<AvailableTransport />} />
-            <Route path="/citizen/farmer/ai" element={<ConnectAI />} />
-            <Route path="/citizen/farmer/shipments" element={<MyShipments />} />
-            <Route path="/citizen/farmer/track" element={<TrackShipment />} />
-
-            {/* Private Transporter Portal Routes */}
-            <Route path="/citizen/transporter" element={<TransporterPortal />} />
-            <Route path="/citizen/transporter/publish-trip" element={<PublishTrip />} />
-            <Route path="/citizen/transporter/trips" element={<MyTrips />} />
-            <Route path="/citizen/transporter/requests" element={<ShipmentRequests />} />
-
-            {/* Official Portal Routes */}
             <Route path="/official/login" element={<OfficialLogin />} />
-            <Route path="/official" element={<OperationalOverview />} />
-            <Route path="/official/overview" element={<OperationalOverview />} />
-            <Route path="/official/map" element={<OfficialLiveMap />} />
-            <Route path="/official/depot" element={<BusDepotOperations />} />
-            <Route path="/official/schedules" element={<ScheduleManagement />} />
-            <Route path="/official/fleet" element={<FleetManagement />} />
-            <Route path="/official/shipments" element={<OfficialShipments />} />
-            <Route path="/official/capacity" element={<CargoCapacityMonitor />} />
-            <Route path="/official/traffic-safety" element={<TrafficSafetyManagement />} />
-            <Route path="/official/alerts" element={<AlertManagementCenter />} />
-            <Route path="/official/ev-infrastructure" element={<EVInfrastructure />} />
-            <Route path="/official/settings" element={<OfficialProfile />} />
-            <Route path="/official/trips" element={<MyTrips />} />
+
+            {/* Protected Citizen Setup */}
+            <Route
+              path="/citizen/role"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <RoleSelection />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Protected General Citizen Portal Routes */}
+            <Route
+              path="/citizen"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <CitizenPortal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/general"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <CitizenPortal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/journey"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <JourneyPlanner />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/bus-schedules"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <BusSchedules />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/map"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <CitizenLiveMap />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/report-traffic"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <ReportTraffic />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/safety"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <SafetyAlerts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/ev-stations"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <EVStations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/bookings"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <MyBookings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/profile"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <CitizenProfile />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Protected Farmer Portal & Agri-Logistics Routes */}
+            <Route
+              path="/citizen/farmer"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <FarmerPortal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/farmer/send-goods"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <SendGoods />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/farmer/transport"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <AvailableTransport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/farmer/ai"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <ConnectAI />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/farmer/shipments"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <MyShipments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/farmer/track"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <TrackShipment />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Protected Private Transporter Portal Routes */}
+            <Route
+              path="/citizen/transporter"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <TransporterPortal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/transporter/publish-trip"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <PublishTrip />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/transporter/trips"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <MyTrips />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/citizen/transporter/requests"
+              element={
+                <ProtectedRoute allowedUserType="CITIZEN">
+                  <ShipmentRequests />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Protected Official Portal Routes */}
+            <Route
+              path="/official"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <OperationalOverview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/overview"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <OperationalOverview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/map"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <OfficialLiveMap />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/depot"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <BusDepotOperations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/schedules"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <ScheduleManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/fleet"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <FleetManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/shipments"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <OfficialShipments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/capacity"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <CargoCapacityMonitor />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/traffic-safety"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <TrafficSafetyManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/alerts"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <AlertManagementCenter />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/ev-infrastructure"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <EVInfrastructure />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/settings"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <OfficialProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/trips"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <MyTrips />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Catch-all redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,31 +1,85 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LOGO_URL } from '../../components/common/Navbar';
 
 export const CitizenLogin: React.FC = () => {
-  const { loginCitizen } = useAuth();
+  const { loginCitizen, resetPassword } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [resetSent, setResetSent] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  const fromPath = (location.state as any)?.from?.pathname;
+
+  // Short cooldown timer for client-side throttling if rate-limited
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Strict request locking: prevent multiple simultaneous submissions
+    if (isSubmitting || cooldown > 0) return;
+
     setError('');
-    setLoading(true);
+    setResetMessage('');
+    setIsSubmitting(true);
 
-    const res = await loginCitizen(email, password);
-    setLoading(false);
+    try {
+      const res = await loginCitizen(email, password);
+      if (res.success) {
+        if (fromPath && fromPath.startsWith('/citizen')) {
+          navigate(fromPath, { replace: true });
+        } else {
+          navigate('/citizen/role');
+        }
+      } else {
+        const errorMsg = res.error || 'Invalid email or password.';
+        setError(errorMsg);
+        if (errorMsg.toLowerCase().includes('too many') || errorMsg.toLowerCase().includes('rate limit')) {
+          setCooldown(15);
+        }
+      }
+    } catch (err: any) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    if (res.success) {
-      navigate('/citizen/role');
-    } else {
-      setError(res.error || 'Invalid credentials');
+  const handleForgotPassword = async () => {
+    if (isSubmitting || resetLoading) return;
+
+    if (!email.trim() || !email.includes('@')) {
+      setError('Please enter your registered email address in the field above to receive a password reset link.');
+      return;
+    }
+
+    setError('');
+    setResetLoading(true);
+
+    try {
+      const res = await resetPassword(email);
+      if (res.success) {
+        setResetMessage('Password reset link sent to your registered email.');
+      } else {
+        setError(res.error || 'Could not send password reset link. Please verify your email.');
+      }
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -62,6 +116,13 @@ export const CitizenLogin: React.FC = () => {
           </div>
         )}
 
+        {resetMessage && (
+          <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2">
+            <span className="material-symbols-outlined text-base shrink-0">mark_email_read</span>
+            <span>{resetMessage}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Email Field (Strictly Email, NO OTP) */}
           <div className="flex flex-col gap-1">
@@ -76,10 +137,11 @@ export const CitizenLogin: React.FC = () => {
                 id="email"
                 type="email"
                 required
+                disabled={isSubmitting}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="citizen@kopargaon.gov.in"
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2.5 pl-10 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] focus:ring-1 focus:ring-[#4f378a] transition-all"
+                placeholder="citizen@example.com"
+                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2.5 pl-10 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] focus:ring-1 focus:ring-[#4f378a] transition-all disabled:opacity-60"
               />
             </div>
           </div>
@@ -92,17 +154,13 @@ export const CitizenLogin: React.FC = () => {
               </label>
               <button
                 type="button"
-                onClick={() => setResetSent(true)}
-                className="text-[11px] text-[#4f378a] hover:underline font-medium"
+                onClick={handleForgotPassword}
+                disabled={isSubmitting || resetLoading}
+                className="text-[11px] text-[#4f378a] hover:underline font-medium disabled:opacity-50 cursor-pointer"
               >
-                Forgot Password?
+                {resetLoading ? 'Sending link...' : 'Forgot Password?'}
               </button>
             </div>
-            {resetSent && (
-              <div className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 p-2 rounded-lg border border-emerald-200">
-                Password reset link sent to your registered email.
-              </div>
-            )}
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#7a7582] text-[20px] pointer-events-none">
                 lock
@@ -111,13 +169,15 @@ export const CitizenLogin: React.FC = () => {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 required
+                disabled={isSubmitting}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2.5 pl-10 pr-10 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] focus:ring-1 focus:ring-[#4f378a] transition-all"
+                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2.5 pl-10 pr-10 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] focus:ring-1 focus:ring-[#4f378a] transition-all disabled:opacity-60"
               />
               <button
                 type="button"
+                tabIndex={-1}
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7a7582] hover:text-[#1d1b20]"
               >
@@ -131,11 +191,13 @@ export const CitizenLogin: React.FC = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-[#C8D9E6] text-[#22005d] font-bold text-sm py-3 rounded-xl mt-2 hover:bg-[#b0c8dc] active:scale-[0.98] transition-all shadow-xs flex justify-center items-center gap-2 group disabled:opacity-50"
+            disabled={isSubmitting || cooldown > 0}
+            className="w-full bg-[#C8D9E6] text-[#22005d] font-bold text-sm py-3 rounded-xl mt-2 hover:bg-[#b0c8dc] active:scale-[0.98] transition-all shadow-xs flex justify-center items-center gap-2 group disabled:opacity-50 cursor-pointer"
           >
-            {loading ? (
+            {isSubmitting ? (
               <span>AUTHENTICATING...</span>
+            ) : cooldown > 0 ? (
+              <span>WAIT ({cooldown}s)</span>
             ) : (
               <>
                 <span>SIGN IN</span>
@@ -147,23 +209,16 @@ export const CitizenLogin: React.FC = () => {
           </button>
         </form>
 
-        {/* Don't have an account & Guest options */}
+        {/* Don't have an account options */}
         <div className="mt-6 flex flex-col items-center gap-3">
           <p className="text-xs text-[#494551]">Don't have an account?</p>
-          <div className="flex gap-2 w-full">
+          <div className="w-full">
             <Link
               to="/citizen/register"
-              className="flex-1 border border-[#4f378a] text-[#4f378a] font-bold text-xs py-2 rounded-xl hover:bg-[#f2ecf4] transition-colors text-center"
+              className="block w-full border border-[#4f378a] text-[#4f378a] font-bold text-xs py-2.5 rounded-xl hover:bg-[#f2ecf4] transition-colors text-center"
             >
               Create Account
             </Link>
-            <button
-              type="button"
-              onClick={() => navigate('/citizen/role')}
-              className="flex-1 bg-[#fdf7ff] text-[#4b4263] border border-[#e0e2e6] font-bold text-xs py-2 rounded-xl hover:bg-[#f2ecf4] transition-colors text-center"
-            >
-              Guest Mode
-            </button>
           </div>
 
           <Link to="/" className="text-[11px] text-gray-500 hover:text-gray-800 mt-2 flex items-center gap-1">

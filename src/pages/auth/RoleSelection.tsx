@@ -10,10 +10,13 @@ export const RoleSelection: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<CitizenRole | null>(
     user?.citizenRole || 'FARMER'
   );
+  const [loading, setLoading] = useState(false);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!selectedRole) return;
-    setCitizenRole(selectedRole);
+    setLoading(true);
+    await setCitizenRole(selectedRole);
+    setLoading(false);
 
     if (selectedRole === 'FARMER') {
       navigate('/citizen/farmer');
@@ -135,10 +138,10 @@ export const RoleSelection: React.FC = () => {
         <div className="mt-8">
           <button
             onClick={handleContinue}
-            disabled={!selectedRole}
-            className="w-full bg-[#4f378a] text-white font-bold text-sm py-3.5 rounded-full shadow-lg hover:bg-[#382467] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
+            disabled={!selectedRole || loading}
+            className="w-full bg-[#4f378a] text-white font-bold text-sm py-3.5 rounded-full shadow-lg hover:bg-[#382467] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-40 cursor-pointer"
           >
-            <span>GET STARTED</span>
+            <span>{loading ? 'INITIALIZING PORTAL...' : 'GET STARTED'}</span>
             <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           </button>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LOGO_URL } from '../../components/common/Navbar';
@@ -18,32 +18,76 @@ export const CitizenRegister: React.FC = () => {
   });
 
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  // Short cooldown timer for client-side throttling if rate-limited
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Strict request locking: prevent multiple submissions while running
+    if (isSubmitting || cooldown > 0) return;
+
     setError('');
+
+    if (!formData.fullName.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
+
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match. Please re-enter.');
+      return;
+    }
 
     if (!formData.termsAccepted) {
       setError('Please accept the Terms & Conditions and Privacy Policy to proceed.');
       return;
     }
 
-    setLoading(true);
-    const res = await registerCitizen({
-      fullName: formData.fullName,
-      email: formData.email,
-      password: formData.password,
-      confirmPassword: formData.confirmPassword,
-      dob: formData.dob,
-      location: formData.location
-    });
-    setLoading(false);
+    setIsSubmitting(true);
 
-    if (res.success) {
-      navigate('/citizen/role');
-    } else {
-      setError(res.error || 'Registration failed. Please check your details.');
+    try {
+      const res = await registerCitizen({
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        dob: formData.dob,
+        location: formData.location
+      });
+
+      if (res.success) {
+        navigate('/citizen/role');
+      } else {
+        const errorMsg = res.error || 'Registration failed. Please check your details.';
+        setError(errorMsg);
+        if (errorMsg.toLowerCase().includes('too many') || errorMsg.toLowerCase().includes('rate limit')) {
+          setCooldown(15);
+        }
+      }
+    } catch (err: any) {
+      setError('An unexpected registration error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -82,10 +126,11 @@ export const CitizenRegister: React.FC = () => {
                 id="fullName"
                 type="text"
                 required
+                disabled={isSubmitting}
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 placeholder="e.g. Balasaheb Vikhe"
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 pl-9 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all"
+                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 pl-9 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
               />
             </div>
           </div>
@@ -103,10 +148,11 @@ export const CitizenRegister: React.FC = () => {
                 id="email"
                 type="email"
                 required
+                disabled={isSubmitting}
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="name@domain.com"
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 pl-9 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all"
+                placeholder="name@example.com"
+                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 pl-9 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
               />
             </div>
           </div>
@@ -125,10 +171,11 @@ export const CitizenRegister: React.FC = () => {
                   id="location"
                   type="text"
                   required
+                  disabled={isSubmitting}
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   placeholder="Kopargaon / Shirdi / Sanvatsar"
-                  className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 pl-9 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all"
+                  className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 pl-9 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
                 />
               </div>
             </div>
@@ -140,9 +187,10 @@ export const CitizenRegister: React.FC = () => {
               <input
                 id="dob"
                 type="date"
+                disabled={isSubmitting}
                 value={formData.dob}
                 onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all"
+                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
               />
             </div>
           </div>
@@ -157,10 +205,11 @@ export const CitizenRegister: React.FC = () => {
                 id="password"
                 type="password"
                 required
+                disabled={isSubmitting}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="Min 6 chars"
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all"
+                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
               />
             </div>
 
@@ -172,10 +221,11 @@ export const CitizenRegister: React.FC = () => {
                 id="confirmPassword"
                 type="password"
                 required
+                disabled={isSubmitting}
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 placeholder="Re-enter password"
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all"
+                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
               />
             </div>
           </div>
@@ -185,9 +235,10 @@ export const CitizenRegister: React.FC = () => {
             <input
               id="terms"
               type="checkbox"
+              disabled={isSubmitting}
               checked={formData.termsAccepted}
               onChange={(e) => setFormData({ ...formData, termsAccepted: e.target.checked })}
-              className="mt-1 w-4 h-4 rounded text-[#4f378a] focus:ring-[#4f378a]"
+              className="mt-1 w-4 h-4 rounded text-[#4f378a] focus:ring-[#4f378a] disabled:opacity-60"
             />
             <label htmlFor="terms" className="text-xs text-[#494551] leading-tight cursor-pointer">
               I agree to the <span className="text-[#4f378a] font-semibold">Terms of Service</span> and <span className="text-[#4f378a] font-semibold">Municipal Data Privacy Policy</span> for Kopargaon Connect.
@@ -197,11 +248,13 @@ export const CitizenRegister: React.FC = () => {
           {/* Submit button */}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-[#4f378a] text-white font-bold text-sm py-3 rounded-xl mt-3 hover:bg-[#382467] active:scale-[0.98] transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-50"
+            disabled={isSubmitting || cooldown > 0}
+            className="w-full bg-[#4f378a] text-white font-bold text-sm py-3 rounded-xl mt-3 hover:bg-[#382467] active:scale-[0.98] transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-50 cursor-pointer"
           >
-            {loading ? (
+            {isSubmitting ? (
               <span>CREATING ACCOUNT...</span>
+            ) : cooldown > 0 ? (
+              <span>PLEASE WAIT ({cooldown}s)</span>
             ) : (
               <>
                 <span>CREATE ACCOUNT</span>

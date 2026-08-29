@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, CitizenRole } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
-import { Navbar, LOGO_URL } from '../../components/common/Navbar';
+import { Navbar } from '../../components/common/Navbar';
 import { Footer } from '../../components/common/Footer';
 
 export const CitizenProfile: React.FC = () => {
@@ -12,20 +12,37 @@ export const CitizenProfile: React.FC = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
-  const [phone, setPhone] = useState(user?.phone || '+91 98220 11223');
+  const [phone, setPhone] = useState(user?.phone || '');
   const [location, setLocation] = useState(user?.location || 'Kopargaon, Maharashtra');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setPhone(user.phone || '');
+      setLocation(user.location || 'Kopargaon, Maharashtra');
+    }
+  }, [user]);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile({ name, phone, location });
-    setIsEditing(false);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2500);
+    setError('');
+    setSaving(true);
+    const res = await updateProfile({ name, phone, location });
+    setSaving(false);
+    if (res.success) {
+      setIsEditing(false);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } else {
+      setError(res.error || 'Failed to update profile.');
+    }
   };
 
-  const handleSwitchRole = (newRole: CitizenRole) => {
-    setCitizenRole(newRole);
+  const handleSwitchRole = async (newRole: CitizenRole) => {
+    await setCitizenRole(newRole);
     if (newRole === 'FARMER') navigate('/citizen/farmer');
     else if (newRole === 'TRANSPORTER') navigate('/citizen/transporter');
     else navigate('/citizen');
@@ -44,7 +61,7 @@ export const CitizenProfile: React.FC = () => {
         <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-[#cbc4d2]/40 relative overflow-hidden">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
             <div className="w-24 h-24 rounded-2xl bg-[#e1d4fd] text-[#4f378a] flex items-center justify-center font-black text-3xl shrink-0 shadow-md border-2 border-white">
-              {user?.name ? user.name[0] : 'U'}
+              {user?.name ? user.name[0].toUpperCase() : 'U'}
             </div>
 
             <div className="flex-1 text-center sm:text-left">
@@ -65,7 +82,7 @@ export const CitizenProfile: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className="px-4 py-2 border border-[#4f378a] text-[#4f378a] hover:bg-[#f2ecf4] rounded-xl text-xs font-bold transition-colors"
+                className="px-4 py-2 border border-[#4f378a] text-[#4f378a] hover:bg-[#f2ecf4] rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
                 {isEditing ? 'Cancel' : 'Edit Profile'}
               </button>
@@ -75,7 +92,14 @@ export const CitizenProfile: React.FC = () => {
           {saveSuccess && (
             <div className="mt-4 p-3 bg-emerald-50 text-emerald-800 text-xs rounded-xl font-bold flex items-center gap-2">
               <span className="material-symbols-outlined text-base">check_circle</span>
-              Profile updated successfully!
+              Profile updated successfully in Supabase!
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 text-red-700 text-xs rounded-xl font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">error</span>
+              {error}
             </div>
           )}
         </div>
@@ -102,6 +126,7 @@ export const CitizenProfile: React.FC = () => {
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+91 98000 00000"
                   className="bg-[#f8f2fa] text-xs text-black rounded-xl p-2.5 border border-[#cbc4d2] focus:outline-none focus:border-[#4f378a]"
                 />
               </div>
@@ -120,15 +145,16 @@ export const CitizenProfile: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl"
+                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#4f378a] text-white text-xs font-bold rounded-xl shadow-xs hover:bg-[#382467]"
+                  disabled={saving}
+                  className="px-5 py-2 bg-[#4f378a] text-white text-xs font-bold rounded-xl shadow-xs hover:bg-[#382467] disabled:opacity-50 cursor-pointer"
                 >
-                  Save Changes
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -148,7 +174,7 @@ export const CitizenProfile: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button
               onClick={() => handleSwitchRole('FARMER')}
-              className={`p-4 rounded-xl border text-left transition-all flex flex-col gap-2 ${
+              className={`p-4 rounded-xl border text-left transition-all flex flex-col gap-2 cursor-pointer ${
                 user?.citizenRole === 'FARMER'
                   ? 'border-[#4f378a] bg-[#4f378a]/5 shadow-xs ring-1 ring-[#4f378a]/30'
                   : 'border-gray-200 hover:bg-gray-50'
@@ -165,7 +191,7 @@ export const CitizenProfile: React.FC = () => {
 
             <button
               onClick={() => handleSwitchRole('TRANSPORTER')}
-              className={`p-4 rounded-xl border text-left transition-all flex flex-col gap-2 ${
+              className={`p-4 rounded-xl border text-left transition-all flex flex-col gap-2 cursor-pointer ${
                 user?.citizenRole === 'TRANSPORTER'
                   ? 'border-[#4f378a] bg-[#4f378a]/5 shadow-xs ring-1 ring-[#4f378a]/30'
                   : 'border-gray-200 hover:bg-gray-50'
@@ -182,7 +208,7 @@ export const CitizenProfile: React.FC = () => {
 
             <button
               onClick={() => handleSwitchRole('GENERAL_CITIZEN')}
-              className={`p-4 rounded-xl border text-left transition-all flex flex-col gap-2 ${
+              className={`p-4 rounded-xl border text-left transition-all flex flex-col gap-2 cursor-pointer ${
                 user?.citizenRole === 'GENERAL_CITIZEN'
                   ? 'border-[#4f378a] bg-[#4f378a]/5 shadow-xs ring-1 ring-[#4f378a]/30'
                   : 'border-gray-200 hover:bg-gray-50'
@@ -218,11 +244,11 @@ export const CitizenProfile: React.FC = () => {
         {/* Sign Out Button */}
         <div className="pt-2 flex justify-center">
           <button
-            onClick={() => {
-              logout();
+            onClick={async () => {
+              await logout();
               navigate('/');
             }}
-            className="px-6 py-2.5 bg-red-50 text-red-700 hover:bg-red-100 text-xs font-bold rounded-xl transition-colors flex items-center gap-2 border border-red-200"
+            className="px-6 py-2.5 bg-red-50 text-red-700 hover:bg-red-100 text-xs font-bold rounded-xl transition-colors flex items-center gap-2 border border-red-200 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">logout</span>
             Sign Out of Account
