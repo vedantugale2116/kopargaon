@@ -5,7 +5,7 @@
 -- =========================================================================
 
 -- Enable pgcrypto extension for secure password hashing
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 -- 1. Profiles Table
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -170,92 +170,76 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.safety_alerts;
 -- Run this block in Supabase SQL Editor (SQL Editor -> New Query -> Run)
 -- =========================================================================
 
-DO $$
-DECLARE
-  v_pass_admin TEXT := crypt('pass@123', gen_salt('bf'));
-  v_pass_default TEXT := crypt('OfficialPass@123', gen_salt('bf'));
-BEGIN
-  -- 8.1 Municipal Administrator (admin@gmail.com / pass@123)
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'admin@gmail.com') THEN
-    INSERT INTO auth.users (
-      id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud
-    ) VALUES (
-      gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'admin@gmail.com', v_pass_admin, now(),
-      '{"provider":"email","providers":["email"]}', '{"full_name":"Municipal Administrator","user_type":"official","official_role":"municipal_admin","department":"Municipal Administration"}',
-      now(), now(), 'authenticated', 'authenticated'
-    );
-  ELSE
-    UPDATE auth.users
-    SET encrypted_password = v_pass_admin,
-        email_confirmed_at = now(),
-        raw_app_meta_data = '{"provider":"email","providers":["email"]}',
-        raw_user_meta_data = '{"full_name":"Municipal Administrator","user_type":"official","official_role":"municipal_admin","department":"Municipal Administration"}'
-    WHERE email = 'admin@gmail.com';
-  END IF;
+-- 8.1 Update or Create admin@gmail.com in auth.users
+UPDATE auth.users
+SET 
+  encrypted_password = extensions.crypt('pass@123', extensions.gen_salt('bf', 10)),
+  email_confirmed_at = now(),
+  confirmation_token = '',
+  recovery_token = '',
+  aud = 'authenticated',
+  role = 'authenticated',
+  raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb,
+  raw_user_meta_data = '{"full_name":"Municipal Administrator","user_type":"official","official_role":"municipal_admin","department":"Municipal Administration"}'::jsonb
+WHERE email = 'admin@gmail.com';
 
-  INSERT INTO public.profiles (id, full_name, email, phone, user_type, official_role, official_id, department, location)
-  SELECT id, 'Municipal Administrator', 'admin@gmail.com', '+91 99220 11223', 'official', 'municipal_admin', 'ADM-01', 'Municipal Administration', 'Kopargaon'
-  FROM auth.users
-  WHERE email = 'admin@gmail.com'
-  ON CONFLICT (id) DO UPDATE SET 
-    user_type = 'official', 
-    official_role = 'municipal_admin', 
-    email = 'admin@gmail.com', 
-    department = 'Municipal Administration', 
-    location = 'Kopargaon';
+-- 8.2 Update or Create admin@gmail.com in public.profiles
+INSERT INTO public.profiles (id, full_name, email, phone, user_type, official_role, official_id, department, location)
+SELECT id, 'Municipal Administrator', 'admin@gmail.com', '+91 99220 11223', 'official', 'municipal_admin', 'ADM-01', 'Municipal Administration', 'Kopargaon'
+FROM auth.users
+WHERE email = 'admin@gmail.com'
+ON CONFLICT (id) DO UPDATE SET 
+  full_name = 'Municipal Administrator',
+  user_type = 'official', 
+  official_role = 'municipal_admin', 
+  official_id = 'ADM-01',
+  email = 'admin@gmail.com', 
+  department = 'Municipal Administration', 
+  location = 'Kopargaon',
+  updated_at = now();
 
-  -- 8.2 Depot Operations Manager (depot@kopargaonconnect.demo / OfficialPass@123)
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'depot@kopargaonconnect.demo') THEN
-    INSERT INTO auth.users (
-      id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud
-    ) VALUES (
-      gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'depot@kopargaonconnect.demo', v_pass_default, now(),
-      '{"provider":"email","providers":["email"]}', '{"full_name":"Depot Operations Manager","user_type":"official","official_role":"depot_manager","department":"Kopargaon Central Bus Depot"}',
-      now(), now(), 'authenticated', 'authenticated'
-    );
-  ELSE
-    UPDATE auth.users
-    SET encrypted_password = v_pass_default,
-        email_confirmed_at = now(),
-        raw_app_meta_data = '{"provider":"email","providers":["email"]}',
-        raw_user_meta_data = '{"full_name":"Depot Operations Manager","user_type":"official","official_role":"depot_manager","department":"Kopargaon Central Bus Depot"}'
-    WHERE email = 'depot@kopargaonconnect.demo';
-  END IF;
+-- 8.3 Update or Create depot@kopargaonconnect.demo (depot_manager)
+UPDATE auth.users
+SET 
+  encrypted_password = extensions.crypt('OfficialPass@123', extensions.gen_salt('bf', 10)),
+  email_confirmed_at = now(),
+  confirmation_token = '',
+  recovery_token = '',
+  aud = 'authenticated',
+  role = 'authenticated',
+  raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb,
+  raw_user_meta_data = '{"full_name":"Depot Operations Manager","user_type":"official","official_role":"depot_manager","department":"Kopargaon Central Bus Depot"}'::jsonb
+WHERE email = 'depot@kopargaonconnect.demo';
 
-  INSERT INTO public.profiles (id, full_name, email, phone, user_type, official_role, official_id, department, location)
-  SELECT id, 'Depot Operations Manager', 'depot@kopargaonconnect.demo', '+91 98230 55667', 'official', 'depot_manager', 'DPT-04', 'MSRTC Kopargaon Depot Operations', 'Kopargaon Central Depot'
-  FROM auth.users
-  WHERE email = 'depot@kopargaonconnect.demo'
-  ON CONFLICT (id) DO UPDATE SET 
-    user_type = 'official', 
-    official_role = 'depot_manager', 
-    email = 'depot@kopargaonconnect.demo';
+INSERT INTO public.profiles (id, full_name, email, phone, user_type, official_role, official_id, department, location)
+SELECT id, 'Depot Operations Manager', 'depot@kopargaonconnect.demo', '+91 98230 55667', 'official', 'depot_manager', 'DPT-04', 'MSRTC Kopargaon Depot Operations', 'Kopargaon Central Depot'
+FROM auth.users
+WHERE email = 'depot@kopargaonconnect.demo'
+ON CONFLICT (id) DO UPDATE SET 
+  user_type = 'official', 
+  official_role = 'depot_manager', 
+  email = 'depot@kopargaonconnect.demo',
+  updated_at = now();
 
-  -- 8.3 Traffic & Road Safety Inspector (traffic@kopargaonconnect.demo / OfficialPass@123)
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'traffic@kopargaonconnect.demo') THEN
-    INSERT INTO auth.users (
-      id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud
-    ) VALUES (
-      gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'traffic@kopargaonconnect.demo', v_pass_default, now(),
-      '{"provider":"email","providers":["email"]}', '{"full_name":"Traffic & Safety Inspector","user_type":"official","official_role":"traffic_safety","department":"Traffic & Transit Police"}',
-      now(), now(), 'authenticated', 'authenticated'
-    );
-  ELSE
-    UPDATE auth.users
-    SET encrypted_password = v_pass_default,
-        email_confirmed_at = now(),
-        raw_app_meta_data = '{"provider":"email","providers":["email"]}',
-        raw_user_meta_data = '{"full_name":"Traffic & Safety Inspector","user_type":"official","official_role":"traffic_safety","department":"Traffic & Transit Police"}'
-    WHERE email = 'traffic@kopargaonconnect.demo';
-  END IF;
+-- 8.4 Update or Create traffic@kopargaonconnect.demo (traffic_safety)
+UPDATE auth.users
+SET 
+  encrypted_password = extensions.crypt('OfficialPass@123', extensions.gen_salt('bf', 10)),
+  email_confirmed_at = now(),
+  confirmation_token = '',
+  recovery_token = '',
+  aud = 'authenticated',
+  role = 'authenticated',
+  raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb,
+  raw_user_meta_data = '{"full_name":"Traffic & Safety Inspector","user_type":"official","official_role":"traffic_safety","department":"Traffic & Transit Police"}'::jsonb
+WHERE email = 'traffic@kopargaonconnect.demo';
 
-  INSERT INTO public.profiles (id, full_name, email, phone, user_type, official_role, official_id, department, location)
-  SELECT id, 'Traffic & Safety Inspector', 'traffic@kopargaonconnect.demo', '+91 97650 33221', 'official', 'traffic_safety', 'TRF-09', 'Kopargaon Traffic & Highway Safety Division', 'Shivaji Chowk Police Post'
-  FROM auth.users
-  WHERE email = 'traffic@kopargaonconnect.demo'
-  ON CONFLICT (id) DO UPDATE SET 
-    user_type = 'official', 
-    official_role = 'traffic_safety', 
-    email = 'traffic@kopargaonconnect.demo';
-
-END $$;
+INSERT INTO public.profiles (id, full_name, email, phone, user_type, official_role, official_id, department, location)
+SELECT id, 'Traffic & Safety Inspector', 'traffic@kopargaonconnect.demo', '+91 97650 33221', 'official', 'traffic_safety', 'TRF-09', 'Kopargaon Traffic & Highway Safety Division', 'Shivaji Chowk Police Post'
+FROM auth.users
+WHERE email = 'traffic@kopargaonconnect.demo'
+ON CONFLICT (id) DO UPDATE SET 
+  user_type = 'official', 
+  official_role = 'traffic_safety', 
+  email = 'traffic@kopargaonconnect.demo',
+  updated_at = now();
