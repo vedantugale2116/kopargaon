@@ -10,6 +10,7 @@ import { CitizenLogin } from './pages/auth/CitizenLogin';
 import { CitizenRegister } from './pages/auth/CitizenRegister';
 import { RoleSelection } from './pages/auth/RoleSelection';
 import { OfficialLogin } from './pages/auth/OfficialLogin';
+import { OfficialResetPassword } from './pages/auth/OfficialResetPassword';
 
 // Citizen & Portals
 import { CitizenPortal } from './pages/citizen/CitizenPortal';
@@ -60,6 +61,7 @@ export function App() {
             <Route path="/citizen/login" element={<CitizenLogin />} />
             <Route path="/citizen/register" element={<CitizenRegister />} />
             <Route path="/official/login" element={<OfficialLogin />} />
+            <Route path="/official/reset-password" element={<OfficialResetPassword />} />
 
             {/* Protected Citizen Setup */}
             <Route

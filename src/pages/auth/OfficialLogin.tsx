@@ -76,7 +76,7 @@ export const OfficialLogin: React.FC = () => {
     setResetLoading(true);
 
     try {
-      const res = await resetPassword(officialId);
+      const res = await resetPassword(officialId, `${window.location.origin}/official/reset-password`);
       if (res.success) {
         setResetSent(true);
       } else {

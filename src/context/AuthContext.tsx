@@ -70,7 +70,8 @@ interface AuthContextType {
   }) => Promise<RegisterResult>;
   setCitizenRole: (role: CitizenRole) => Promise<void>;
   loginOfficial: (officialIdOrEmail: string, pass: string) => Promise<LoginOfficialResult>;
-  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (email: string, redirectTo?: string) => Promise<{ success: boolean; error?: string }>;
+  updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
   refreshProfile: () => Promise<void>;
@@ -492,15 +493,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Real Password Reset via Supabase Auth (EXACTLY ONE resetPasswordForEmail REQUEST)
-  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+  const resetPassword = async (email: string, redirectTo?: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
       return { success: false, error: 'Please enter a valid registered email address.' };
     }
 
+    const targetRedirect = redirectTo || `${window.location.origin}/citizen/login`;
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-        redirectTo: `${window.location.origin}/citizen/login`
+        redirectTo: targetRedirect
+      });
+
+      if (error) {
+        return { success: false, error: getAuthErrorMessage(error) };
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: getAuthErrorMessage(err) };
+    }
+  };
+
+  // Secure Password Update via Supabase Auth (updateUser API)
+  const updatePassword = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters long.' };
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
       });
 
       if (error) {
@@ -576,6 +599,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCitizenRole,
         loginOfficial,
         resetPassword,
+        updatePassword,
         logout,
         updateProfile,
         refreshProfile
