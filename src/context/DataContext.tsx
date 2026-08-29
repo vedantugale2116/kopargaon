@@ -25,7 +25,7 @@ import {
   initialEVStations,
   initialNotifications
 } from '../lib/mockData';
-import { getStorageItem, setStorageItem } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, getStorageItem, setStorageItem } from '../lib/supabase';
 
 interface DataContextType {
   buses: Bus[];
@@ -61,17 +61,8 @@ interface DataContextType {
   }) => Shipment;
   publishTrip: (trip: Omit<TransporterTrip, 'id' | 'status'>) => void;
   createShipment: (shipment: Omit<Shipment, 'id' | 'trackingNumber' | 'timeline' | 'createdAt'>) => string;
-  updateShipmentStatus: (id: string, status: Shipment['currentStatus'], description?: string) => void;
-  requestShipmentForTrip: (tripId: string, details: {
-    farmerName: string;
-    farmerPhone: string;
-    pickupLocation: string;
-    dropLocation: string;
-    goodsType: string;
-    weightKg: number;
-    offeredPrice: number;
-    preferredTime: string;
-  }) => void;
+  updateShipmentStatus: (shipmentId: string, status: Shipment['currentStatus'], note?: string) => void;
+  createShipmentRequest: (req: Omit<ShipmentRequest, 'id' | 'status' | 'createdAt'>) => void;
   acceptShipmentRequest: (requestId: string) => void;
   rejectShipmentRequest: (requestId: string) => void;
   addTrafficReport: (report: {
@@ -95,7 +86,7 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Traffic severity calculation function based on the exact rule:
+// Traffic severity calculation function based on:
 // 0–1 reports: GREEN
 // 2–3 reports: YELLOW
 // 4 reports: ORANGE
@@ -134,6 +125,104 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => setStorageItem('evStations', evStations), [evStations]);
   useEffect(() => setStorageItem('notifications', notifications), [notifications]);
 
+  // Supabase Realtime and Data Synchronization
+  useEffect(() => {
+    const client = supabase;
+    if (!client || !isSupabaseConfigured) return;
+
+    // Fetch initial records from Supabase tables if present
+    client.from('traffic_reports').select('*').then(({ data }) => {
+      if (data && data.length > 0) {
+        const mapped: TrafficReport[] = data.map((r: any) => ({
+          id: String(r.id),
+          userId: r.reporter_phone || 'citizen',
+          userName: r.reporter_name,
+          roadName: r.location_name,
+          regionKey: r.location_name.toLowerCase().replace(/\s+/g, '_'),
+          locationDescription: r.description || r.location_name,
+          description: r.description || '',
+          photoUrl: r.photo_url || '',
+          timestamp: new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          severity: r.congestion_level === 'RED' ? 'SEVERE' : r.congestion_level === 'ORANGE' ? 'HEAVY' : r.congestion_level === 'YELLOW' ? 'MODERATE' : 'LOW',
+          status: (r.status === 'CLEARED' ? 'RESOLVED' : r.status) || 'REPORTED'
+        }));
+        setTrafficReports(prev => {
+          const ids = new Set(prev.map(p => p.id));
+          const newItems = mapped.filter(m => !ids.has(m.id));
+          return [...newItems, ...prev];
+        });
+      }
+    });
+
+    client.from('safety_alerts').select('*').then(({ data }) => {
+      if (data && data.length > 0) {
+        const mapped: SafetyAlert[] = data.map((a: any) => ({
+          id: String(a.id),
+          title: a.title,
+          description: a.message || a.description || '',
+          severity: a.severity || 'WARNING',
+          category: a.category || 'TRAFFIC',
+          location: a.affected_area || a.location || 'Kopargaon',
+          timestamp: new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          expiresAt: '24 hours',
+          active: a.is_active ?? true,
+          issuedBy: a.issued_by || 'Kopargaon Police Sub-Division'
+        }));
+        setSafetyAlerts(prev => {
+          const ids = new Set(prev.map(p => p.id));
+          const newItems = mapped.filter(m => !ids.has(m.id));
+          return [...newItems, ...prev];
+        });
+      }
+    });
+
+    // Supabase Realtime Channels
+    const channel = client
+      .channel('kopargaon-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'traffic_reports' }, payload => {
+        if (payload.new) {
+          const r: any = payload.new;
+          const newRep: TrafficReport = {
+            id: String(r.id),
+            userId: r.reporter_phone || 'citizen',
+            userName: r.reporter_name,
+            roadName: r.location_name,
+            regionKey: r.location_name.toLowerCase().replace(/\s+/g, '_'),
+            locationDescription: r.description || r.location_name,
+            description: r.description || '',
+            photoUrl: r.photo_url || '',
+            timestamp: new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            severity: r.congestion_level === 'RED' ? 'SEVERE' : r.congestion_level === 'ORANGE' ? 'HEAVY' : r.congestion_level === 'YELLOW' ? 'MODERATE' : 'LOW',
+            status: (r.status === 'CLEARED' ? 'RESOLVED' : r.status) || 'REPORTED'
+          };
+          setTrafficReports(prev => [newRep, ...prev.filter(x => x.id !== newRep.id)]);
+        }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'safety_alerts' }, payload => {
+        if (payload.new) {
+          const a: any = payload.new;
+          const newAlert: SafetyAlert = {
+            id: String(a.id),
+            title: a.title,
+            description: a.message || a.description || '',
+            severity: a.severity || 'WARNING',
+            category: a.category || 'TRAFFIC',
+            location: a.affected_area || a.location || 'Kopargaon',
+            timestamp: new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            expiresAt: '24 hours',
+            active: a.is_active ?? true,
+            issuedBy: a.issued_by || 'Kopargaon Police Sub-Division'
+          };
+          setSafetyAlerts(prev => [newAlert, ...prev.filter(x => x.id !== newAlert.id)]);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  }, []);
+
   // Dynamic Actions
   const createSchedule = (newSchedData: Omit<BusSchedule, 'id'>) => {
     const newSched: BusSchedule = {
@@ -142,7 +231,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setSchedules(prev => [newSched, ...prev]);
 
-    // Send notification to citizens
     addNotification({
       targetRole: 'CITIZEN',
       title: `New Bus Schedule Published: ${newSched.busNumber}`,
@@ -173,7 +261,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Passenger Bus Ticket Booking with seat deduction and realistic ID generation
+  // Passenger Bus Ticket Booking
   const bookBusTicket = (bookingData: Omit<PassengerBooking, 'id' | 'bookingId' | 'transactionId' | 'bookedAt' | 'paymentStatus' | 'bookingStatus'>): PassengerBooking => {
     const bookingId = `BK-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
     const prefix = bookingData.paymentMethod === 'UPI' ? 'UPI' : bookingData.paymentMethod === 'Card' ? 'CARD' : 'NET';
@@ -210,7 +298,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setPassengerBookings(prev => [newBooking, ...prev]);
 
-    // Send confirmation notification
+    // Send to Supabase
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('passenger_bookings').insert({
+        booking_id: bookingId,
+        bus_number: bookingData.busNumber,
+        route_id: String(bookingData.routeId),
+        origin: bookingData.origin,
+        destination: bookingData.destination,
+        stops: bookingData.stops,
+        date: bookingData.date,
+        departure_time: bookingData.departureTime,
+        arrival_time: bookingData.arrivalTime,
+        passenger_count: bookingData.passengerCount,
+        fare_per_passenger: bookingData.farePerPassenger,
+        total_amount: bookingData.totalAmount,
+        payment_method: bookingData.paymentMethod,
+        transaction_id: transactionId,
+        user_name: bookingData.userName || 'Citizen',
+        booking_status: 'CONFIRMED'
+      }).then();
+    }
+
     addNotification({
       targetRole: 'CITIZEN',
       title: `Ticket Confirmed: ${bookingId}`,
@@ -221,7 +330,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return newBooking;
   };
 
-  // Cargo Booking on Public Bus Cargo Bay
+  // Bus Cargo Booking
   const bookBusCargo = (cargoData: {
     scheduleId: string;
     busNumber: string;
@@ -235,7 +344,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     pickupLocation?: string;
     dropLocation?: string;
   }): Shipment => {
-    // Deduct cargo capacity
     setSchedules(prev => prev.map(s => {
       if (s.id === cargoData.scheduleId || s.busNumber === cargoData.busNumber) {
         const newAvail = Math.max(0, s.availableCargoKg - cargoData.weightKg);
@@ -290,19 +398,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       weightKg: cargoData.weightKg,
       preferredDate: 'Today',
       preferredTime: 'Scheduled Bus Departure',
-      assignedType: 'PUBLIC_BUS',
+      assignedType: 'PUBLIC_BUS' as const,
       transporterName: `MSRTC Bus (${cargoData.busNumber})`,
       transporterVehicle: `MSRTC Bus Cargo Bay (${cargoData.busNumber})`,
       estimatedCost: cargoData.totalCharge,
-      currentStatus: 'ACCEPTED',
-      createdAt: new Date().toLocaleDateString(),
-      estimatedDelivery: 'Today (Same Day)',
-      timeline: []
+      currentStatus: 'ACCEPTED' as const,
+      estimatedDelivery: 'Today',
+      busScheduleId: cargoData.scheduleId,
+      timeline: [
+        { status: 'Cargo Space Reserved', timestamp: new Date().toISOString(), description: `Allocated ${cargoData.weightKg} kg in ${cargoData.busNumber}`, completed: true, current: true }
+      ],
+      createdAt: new Date().toISOString()
     };
 
     return createdShipment;
   };
 
+  // Publish Transporter Trip
   const publishTrip = (tripData: Omit<TransporterTrip, 'id' | 'status'>) => {
     const newTrip: TransporterTrip = {
       ...tripData,
@@ -311,135 +423,104 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setTrips(prev => [newTrip, ...prev]);
 
-    // Notify Farmers
-    addNotification({
-      targetRole: 'FARMER',
-      title: `New Transport Available: ${tripData.origin} → ${tripData.destination}`,
-      message: `${tripData.transporterName} (${tripData.vehicleType}) has published ${tripData.availableCapacityKg} kg available capacity on ${tripData.date}.`,
-      category: 'SHIPMENT'
-    });
-  };
-
-  const createShipment = (shipmentData: Omit<Shipment, 'id' | 'trackingNumber' | 'timeline' | 'createdAt'>): string => {
-    const id = `ship-${Date.now()}`;
-    const trackingNumber = `KC-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
-    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    const newShipment: Shipment = {
-      ...shipmentData,
-      id,
-      trackingNumber,
-      createdAt: `${new Date().toISOString().split('T')[0]} ${nowStr}`,
-      timeline: [
-        {
-          status: 'REQUESTED',
-          timestamp: `${new Date().toLocaleDateString()} ${nowStr}`,
-          description: `Shipment booked by ${shipmentData.farmerName} for ${shipmentData.weightKg} kg ${shipmentData.goodsType}.`,
-          completed: true,
-          current: shipmentData.currentStatus === 'REQUESTED'
-        },
-        {
-          status: 'MATCHED',
-          timestamp: shipmentData.currentStatus !== 'REQUESTED' ? `${new Date().toLocaleDateString()} ${nowStr}` : 'Pending assignment',
-          description: shipmentData.transporterName ? `Matched with ${shipmentData.transporterName}` : 'Matching with optimal rural carrier',
-          completed: shipmentData.currentStatus !== 'REQUESTED',
-          current: shipmentData.currentStatus === 'MATCHED'
-        },
-        {
-          status: 'ACCEPTED',
-          timestamp: shipmentData.currentStatus === 'ACCEPTED' || shipmentData.currentStatus === 'IN TRANSIT' ? `${new Date().toLocaleDateString()} ${nowStr}` : 'Awaiting confirmation',
-          description: 'Carrier confirmed cargo bay allocation',
-          completed: shipmentData.currentStatus === 'ACCEPTED' || shipmentData.currentStatus === 'IN TRANSIT' || shipmentData.currentStatus === 'DELIVERED',
-          current: shipmentData.currentStatus === 'ACCEPTED'
-        },
-        {
-          status: 'PICKUP',
-          timestamp: 'Scheduled',
-          description: `Pickup at ${shipmentData.origin}`,
-          completed: shipmentData.currentStatus === 'IN TRANSIT' || shipmentData.currentStatus === 'DELIVERED',
-          current: shipmentData.currentStatus === 'PICKUP'
-        },
-        {
-          status: 'IN TRANSIT',
-          timestamp: shipmentData.currentStatus === 'IN TRANSIT' ? 'Active' : 'Pending dispatch',
-          description: `In transit to ${shipmentData.destination}`,
-          completed: shipmentData.currentStatus === 'IN TRANSIT' || shipmentData.currentStatus === 'DELIVERED',
-          current: shipmentData.currentStatus === 'IN TRANSIT'
-        },
-        {
-          status: 'DELIVERED',
-          timestamp: shipmentData.estimatedDelivery,
-          description: `Drop-off at ${shipmentData.destination}`,
-          completed: shipmentData.currentStatus === 'DELIVERED',
-          current: false
-        }
-      ]
-    };
-
-    setShipments(prev => [newShipment, ...prev]);
-
-    // If assigned to private transporter, create a request record
-    if (shipmentData.transporterId) {
-      const trip = trips.find(t => t.transporterId === shipmentData.transporterId);
-      if (trip) {
-        setRequests(prev => [
-          {
-            id: `req-${Date.now()}`,
-            tripId: trip.id,
-            shipmentId: id,
-            farmerName: shipmentData.farmerName,
-            farmerPhone: shipmentData.farmerPhone,
-            pickupLocation: shipmentData.origin,
-            dropLocation: shipmentData.destination,
-            goodsType: shipmentData.goodsType,
-            weightKg: shipmentData.weightKg,
-            offeredPrice: shipmentData.estimatedCost,
-            preferredTime: shipmentData.preferredTime,
-            status: 'PENDING',
-            createdAt: 'Just now'
-          },
-          ...prev
-        ]);
-
-        addNotification({
-          targetRole: 'TRANSPORTER',
-          title: `New Shipment Request (${shipmentData.weightKg} kg)`,
-          message: `${shipmentData.farmerName} requested cargo transport for ${shipmentData.goodsType} from ${shipmentData.origin} to ${shipmentData.destination}.`,
-          category: 'SHIPMENT'
-        });
-      }
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('published_trips').insert({
+        transporter_name: tripData.transporterName,
+        phone: tripData.phone,
+        vehicle_type: tripData.vehicleType,
+        vehicle_number: tripData.vehicleNumber,
+        origin: tripData.origin,
+        destination: tripData.destination,
+        date: tripData.date,
+        departure_time: tripData.departureTime,
+        arrival_time: tripData.estimatedArrival,
+        available_weight_kg: tripData.availableCapacityKg,
+        max_weight_kg: tripData.totalCapacityKg,
+        base_rate_per_kg: tripData.chargePerKg,
+        notes: tripData.notes
+      }).then();
     }
 
     addNotification({
       targetRole: 'FARMER',
-      title: `Shipment Created: ${trackingNumber}`,
-      message: `Your booking for ${shipmentData.weightKg} kg ${shipmentData.goodsType} has been recorded. Tracking is now active.`,
+      title: `New Transit Capacity Available: ${newTrip.origin} → ${newTrip.destination}`,
+      message: `${newTrip.transporterName} published ${newTrip.availableCapacityKg} kg capacity on ${newTrip.vehicleType} (${newTrip.vehicleNumber}) departing ${newTrip.date} at ${newTrip.departureTime}.`,
+      category: 'SHIPMENT'
+    });
+  };
+
+  // Create Shipment
+  const createShipment = (data: Omit<Shipment, 'id' | 'trackingNumber' | 'timeline' | 'createdAt'>): string => {
+    const trackingNumber = `KC-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+    const newShipmentId = `ship-${Date.now()}`;
+    const newShipment: Shipment = {
+      ...data,
+      id: newShipmentId,
+      trackingNumber,
+      timeline: [
+        {
+          status: 'Shipment Created',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          description: `Requested transit for ${data.quantity} of ${data.goodsType} (${data.weightKg} kg)`,
+          completed: true,
+          current: true
+        }
+      ],
+      createdAt: new Date().toISOString()
+    };
+
+    setShipments(prev => [newShipment, ...prev]);
+
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('shipments').insert({
+        tracking_number: trackingNumber,
+        farmer_id: data.farmerId,
+        farmer_name: data.farmerName,
+        farmer_phone: data.farmerPhone,
+        origin: data.origin,
+        destination: data.destination,
+        goods_type: data.goodsType,
+        quantity: data.quantity,
+        weight_kg: data.weightKg,
+        preferred_date: data.preferredDate,
+        preferred_time: data.preferredTime,
+        assigned_type: data.assignedType,
+        transporter_name: data.transporterName,
+        transporter_vehicle: data.transporterVehicle,
+        estimated_cost: data.estimatedCost,
+        current_status: data.currentStatus,
+        estimated_delivery: data.estimatedDelivery,
+        bus_schedule_id: data.busScheduleId,
+        timeline: newShipment.timeline
+      }).then();
+    }
+
+    addNotification({
+      targetRole: 'TRANSPORTER',
+      title: 'New Cargo Shipment Request',
+      message: `Farmer ${data.farmerName} requested transit for ${data.weightKg} kg of ${data.goodsType} from ${data.origin} to ${data.destination}.`,
       category: 'SHIPMENT'
     });
 
-    return id;
+    return newShipmentId;
   };
 
-  const updateShipmentStatus = (id: string, status: Shipment['currentStatus'], description?: string) => {
-    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const updateShipmentStatus = (shipmentId: string, status: Shipment['currentStatus'], note?: string) => {
     setShipments(prev => prev.map(s => {
-      if (s.id === id) {
-        const updatedTimeline = s.timeline.map(step => {
-          if (step.status === status) {
-            return {
-              ...step,
-              completed: true,
-              current: true,
-              timestamp: `${new Date().toLocaleDateString()} ${nowStr}`,
-              description: description || step.description
-            };
+      if (s.id === shipmentId || s.trackingNumber === shipmentId) {
+        const updatedTimeline = [
+          ...s.timeline.map(t => ({ ...t, current: false })),
+          {
+            status: status === 'ACCEPTED' ? 'Carrier Confirmed' :
+                    status === 'PICKUP' ? 'Cargo Loaded' :
+                    status === 'IN TRANSIT' ? 'In Transit' :
+                    status === 'DELIVERED' ? 'Delivery Completed' : status,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            description: note || `Status updated to ${status}`,
+            completed: true,
+            current: true
           }
-          if (['REQUESTED', 'MATCHED', 'ACCEPTED', 'PICKUP', 'IN TRANSIT', 'DELIVERED'].indexOf(step.status) < ['REQUESTED', 'MATCHED', 'ACCEPTED', 'PICKUP', 'IN TRANSIT', 'DELIVERED'].indexOf(status)) {
-            return { ...step, completed: true, current: false };
-          }
-          return { ...step, current: false };
-        });
-
+        ];
         return {
           ...s,
           currentStatus: status,
@@ -449,39 +530,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return s;
     }));
 
-    addNotification({
-      targetRole: 'FARMER',
-      title: `Shipment Status Updated: ${status}`,
-      message: `Your shipment is now in status: ${status}.`,
-      category: 'SHIPMENT'
-    });
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('shipments').update({
+        current_status: status
+      }).or(`id.eq.${shipmentId},tracking_number.eq.${shipmentId}`).then();
+    }
   };
 
-  const requestShipmentForTrip = (tripId: string, details: {
-    farmerName: string;
-    farmerPhone: string;
-    pickupLocation: string;
-    dropLocation: string;
-    goodsType: string;
-    weightKg: number;
-    offeredPrice: number;
-    preferredTime: string;
-  }) => {
-    const newReqId = `req-${Date.now()}`;
+  const createShipmentRequest = (reqData: Omit<ShipmentRequest, 'id' | 'status' | 'createdAt'>) => {
     const newReq: ShipmentRequest = {
-      id: newReqId,
-      tripId,
-      shipmentId: `ship-${Date.now()}`,
-      ...details,
+      ...reqData,
+      id: `req-${Date.now()}`,
       status: 'PENDING',
-      createdAt: 'Just now'
+      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     setRequests(prev => [newReq, ...prev]);
 
     addNotification({
       targetRole: 'TRANSPORTER',
-      title: `New Shipment Request (${details.weightKg} kg)`,
-      message: `${details.farmerName} requested cargo transit for ${details.goodsType} from ${details.pickupLocation}.`,
+      title: 'New Cargo Booking Inquiry',
+      message: `${reqData.farmerName} wants to book ${reqData.weightKg} kg on your trip to ${reqData.dropLocation}. Estimated Freight: ₹${reqData.offeredPrice}.`,
       category: 'SHIPMENT'
     });
   };
@@ -490,10 +558,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const req = requests.find(r => r.id === requestId);
     if (!req) return;
 
-    // Update request status
     setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'ACCEPTED' } : r));
 
-    // Deduct available capacity from trip
     setTrips(prev => prev.map(t => {
       if (t.id === req.tripId) {
         const newAvail = Math.max(0, t.availableCapacityKg - req.weightKg);
@@ -502,10 +568,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return t;
     }));
 
-    // If shipment exists, update its status
     updateShipmentStatus(req.shipmentId, 'ACCEPTED', 'Transporter accepted cargo booking');
 
-    // Notify farmer
     addNotification({
       targetRole: 'FARMER',
       title: 'Shipment Request Accepted!',
@@ -533,7 +597,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     description: string;
     photoUrl?: string;
   }) => {
-    // Determine target region
     let targetRegion = trafficRegions.find(r => 
       (reportData.regionKey && r.id === reportData.regionKey) || 
       r.name.toLowerCase().includes(reportData.roadName.toLowerCase()) ||
@@ -541,7 +604,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     if (!targetRegion) {
-      targetRegion = trafficRegions[0]; // default to APMC / Godavari
+      targetRegion = trafficRegions[0];
     }
 
     const updatedReportCount = targetRegion.reportCount + 1;
@@ -563,7 +626,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setTrafficReports(prev => [newReport, ...prev]);
 
-    // Update traffic region count and color
     setTrafficRegions(prev => prev.map(r => {
       if (r.id === targetRegion!.id) {
         return {
@@ -576,72 +638,115 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return r;
     }));
 
-    // Notify Official Command Center
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('traffic_reports').insert({
+        reporter_name: reportData.userName || 'Citizen',
+        reporter_role: 'CITIZEN',
+        location_name: targetRegion.name,
+        coordinates: targetRegion.coordinates,
+        congestion_level: newTrafficColor,
+        description: reportData.description,
+        photo_url: reportData.photoUrl,
+        status: 'REPORTED'
+      }).then();
+    }
+
     addNotification({
       targetRole: 'OFFICIAL',
-      title: `Traffic Alert Reported: ${targetRegion.name}`,
-      message: `${reportData.userName} submitted a traffic photo report. Active report count is now ${updatedReportCount} (${newTrafficColor} status).`,
+      title: `Traffic Congestion Alert: ${targetRegion.name}`,
+      message: `Citizen reported congestion: "${reportData.description}". Total reports in zone: ${updatedReportCount} (${newTrafficColor} level).`,
       category: 'TRAFFIC'
     });
   };
 
   const acknowledgeTrafficReport = (id: string) => {
     setTrafficReports(prev => prev.map(r => r.id === id ? { ...r, status: 'ACKNOWLEDGED' } : r));
+
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('traffic_reports').update({ status: 'ACKNOWLEDGED' }).eq('id', id).then();
+    }
   };
 
   const issueAlertFromTraffic = (reportId: string, alertTitle: string, alertDesc: string) => {
-    const report = trafficReports.find(r => r.id === reportId);
-    if (!report) return;
+    const rep = trafficReports.find(r => r.id === reportId);
+    acknowledgeTrafficReport(reportId);
 
-    setTrafficReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'ALERT_ISSUED' } : r));
-
-    createSafetyAlert({
-      title: alertTitle || `Traffic Warning: ${report.roadName}`,
-      category: 'TRAFFIC',
+    const newAlert: SafetyAlert = {
+      id: `alert-${Date.now()}`,
+      title: alertTitle || `Traffic Alert: ${rep?.roadName || 'Kopargaon Corridor'}`,
+      description: alertDesc || rep?.description || 'Heavy congestion reported. Follow diversions.',
       severity: 'WARNING',
-      location: report.locationDescription || report.roadName,
-      description: alertDesc || report.description,
-      issuedBy: 'Kopargaon Traffic & Safety Bureau',
-      expiresAt: 'Today, 06:00 PM'
-    });
+      category: 'TRAFFIC',
+      location: rep?.roadName || 'Kopargaon Central',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      expiresAt: '12 hours',
+      active: true,
+      issuedBy: 'Kopargaon Police Sub-Division'
+    };
+
+    setSafetyAlerts(prev => [newAlert, ...prev]);
+
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('safety_alerts').insert({
+        title: newAlert.title,
+        message: newAlert.description,
+        severity: 'WARNING',
+        category: 'TRAFFIC',
+        affected_area: newAlert.location,
+        is_active: true,
+        issued_by: 'Kopargaon Police Sub-Division'
+      }).then();
+    }
   };
 
   const resolveTrafficReport = (id: string) => {
-    const report = trafficReports.find(r => r.id === id);
-    if (!report) return;
+    const rep = trafficReports.find(r => r.id === id);
+    if (rep) {
+      const region = trafficRegions.find(rg => rg.id === rep.regionKey || rg.name === rep.roadName);
+      if (region) {
+        const newCount = Math.max(0, region.reportCount - 1);
+        const newColor = calculateTrafficColor(newCount);
+        setTrafficRegions(prev => prev.map(rg => rg.id === region.id ? {
+          ...rg,
+          reportCount: newCount,
+          currentTraffic: newColor,
+          statusMessage: newCount === 0 ? 'Normal traffic flow' : `${newCount} active reports (${newColor})`
+        } : rg));
+      }
+    }
 
     setTrafficReports(prev => prev.map(r => r.id === id ? { ...r, status: 'RESOLVED' } : r));
 
-    // Decrement region report count
-    setTrafficRegions(prev => prev.map(r => {
-      if (r.id === report.regionKey) {
-        const newCount = Math.max(0, r.reportCount - 1);
-        const newColor = calculateTrafficColor(newCount);
-        return {
-          ...r,
-          reportCount: newCount,
-          currentTraffic: newColor,
-          statusMessage: newCount === 0 ? 'Clear and normal traffic flow.' : `${newCount} reports active (${newColor}).`
-        };
-      }
-      return r;
-    }));
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('traffic_reports').update({ status: 'CLEARED' }).eq('id', id).then();
+    }
   };
 
   const createSafetyAlert = (alertData: Omit<SafetyAlert, 'id' | 'timestamp' | 'active'>) => {
     const newAlert: SafetyAlert = {
       ...alertData,
-      id: `alt-${Date.now()}`,
+      id: `alert-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       active: true
     };
     setSafetyAlerts(prev => [newAlert, ...prev]);
 
-    // Broadcast notification to all citizens
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('safety_alerts').insert({
+        title: newAlert.title,
+        message: newAlert.description,
+        severity: newAlert.severity,
+        category: newAlert.category,
+        affected_area: newAlert.location,
+        is_active: true,
+        issued_by: newAlert.issuedBy
+      }).then();
+    }
+
     addNotification({
-      targetRole: 'ALL',
-      title: `Official Safety Alert: ${alertData.title}`,
-      message: `${alertData.description} — Location: ${alertData.location}`,
+      targetRole: 'CITIZEN',
+      title: `Safety Broadcast: ${newAlert.title}`,
+      message: newAlert.description,
       category: 'ALERT'
     });
   };
@@ -653,7 +758,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addNotification = (notifData: Omit<UserNotification, 'id' | 'timestamp' | 'read'>) => {
     const newNotif: UserNotification = {
       ...notifData,
-      id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: `notif-${Date.now()}`,
       timestamp: 'Just now',
       read: false
     };
@@ -705,7 +810,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         publishTrip,
         createShipment,
         updateShipmentStatus,
-        requestShipmentForTrip,
+        createShipmentRequest,
         acceptShipmentRequest,
         rejectShipmentRequest,
         addTrafficReport,
