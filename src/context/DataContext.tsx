@@ -102,18 +102,26 @@ export function calculateTrafficColor(reportCount: number): 'GREEN' | 'YELLOW' |
   return 'RED';
 }
 
+const mergeWithDefaults = <T extends { id: string }>(key: string, defaults: T[]): T[] => {
+  const stored = getStorageItem<T[]>(key, defaults);
+  if (!Array.isArray(stored) || stored.length === 0) return defaults;
+  const storedIds = new Set(stored.map(s => s.id));
+  const missingDefaults = defaults.filter(d => !storedIds.has(d.id));
+  return [...stored, ...missingDefaults];
+};
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [buses, setBuses] = useState<Bus[]>(() => getStorageItem('buses', initialBuses));
-  const [routes] = useState<BusRoute[]>(() => getStorageItem('routes', initialRoutes));
-  const [schedules, setSchedules] = useState<BusSchedule[]>(() => getStorageItem('schedules', initialSchedules));
+  const [buses, setBuses] = useState<Bus[]>(() => mergeWithDefaults('buses', initialBuses));
+  const [routes] = useState<BusRoute[]>(() => mergeWithDefaults('routes', initialRoutes));
+  const [schedules, setSchedules] = useState<BusSchedule[]>(() => mergeWithDefaults('schedules', initialSchedules));
   const [passengerBookings, setPassengerBookings] = useState<PassengerBooking[]>(() => getStorageItem('passengerBookings', initialPassengerBookings));
-  const [trips, setTrips] = useState<TransporterTrip[]>(() => getStorageItem('trips', initialTrips));
+  const [trips, setTrips] = useState<TransporterTrip[]>(() => mergeWithDefaults('trips', initialTrips));
   const [shipments, setShipments] = useState<Shipment[]>(() => getStorageItem('shipments', initialShipments));
   const [requests, setRequests] = useState<ShipmentRequest[]>(() => getStorageItem('requests', initialRequests));
-  const [trafficRegions, setTrafficRegions] = useState<TrafficRegion[]>(() => getStorageItem('trafficRegions', initialTrafficRegions));
-  const [trafficReports, setTrafficReports] = useState<TrafficReport[]>(() => getStorageItem('trafficReports', initialTrafficReports));
-  const [safetyAlerts, setSafetyAlerts] = useState<SafetyAlert[]>(() => getStorageItem('safetyAlerts', initialSafetyAlerts));
-  const [evStations, setEvStations] = useState<EVStation[]>(() => getStorageItem('evStations', initialEVStations));
+  const [trafficRegions, setTrafficRegions] = useState<TrafficRegion[]>(() => mergeWithDefaults('trafficRegions', initialTrafficRegions));
+  const [trafficReports, setTrafficReports] = useState<TrafficReport[]>(() => mergeWithDefaults('trafficReports', initialTrafficReports));
+  const [safetyAlerts, setSafetyAlerts] = useState<SafetyAlert[]>(() => mergeWithDefaults('safetyAlerts', initialSafetyAlerts));
+  const [evStations, setEvStations] = useState<EVStation[]>(() => mergeWithDefaults('evStations', initialEVStations));
   const [notifications, setNotifications] = useState<UserNotification[]>(() => getStorageItem('notifications', initialNotifications));
 
   // Sync to local storage

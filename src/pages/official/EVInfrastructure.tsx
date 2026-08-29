@@ -21,10 +21,6 @@ export const EVInfrastructure: React.FC = () => {
             </h1>
             <p className="text-[11px] text-gray-500">Power distribution monitoring, charger grid uptime, and rural expansion planning</p>
           </div>
-
-          <span className="px-3 py-1 bg-amber-100 text-amber-900 rounded-full text-[10px] font-bold">
-            DEMO DATA — MUNICIPAL PLANNING
-          </span>
         </header>
 
         <main className="p-6 space-y-6 max-w-7xl w-full mx-auto">
@@ -102,7 +98,6 @@ export const EVInfrastructure: React.FC = () => {
                 <span className="material-symbols-outlined text-[#765b00]">engineering</span>
                 Underserved Rural Corridor Planning (Phase 2 Roadmap)
               </h3>
-              <span className="text-[10px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full">DEMO DATA</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">

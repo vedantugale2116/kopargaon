@@ -5,6 +5,7 @@ import { Navbar } from '../../components/common/Navbar';
 import { Footer } from '../../components/common/Footer';
 import { BusBookingModal } from '../../components/bus/BusBookingModal';
 import { BusSchedule } from '../../lib/mockData';
+import { isRouteMatchingSearch } from '../../lib/routeSearchHelper';
 
 export const JourneyPlanner: React.FC = () => {
   const { schedules, trafficRegions } = useData();
@@ -20,11 +21,9 @@ export const JourneyPlanner: React.FC = () => {
   const [selectedSchedule, setSelectedSchedule] = useState<BusSchedule | null>(null);
   const [bookingMode, setBookingMode] = useState<'PASSENGER' | 'CARGO'>('PASSENGER');
 
-  // Filter matching schedules
+  // Filter matching schedules with directional and intermediate stop accuracy
   const matchingSchedules = schedules.filter(s => {
-    const orig = (s.origin + ' ' + s.stops.join(' ')).toLowerCase();
-    const dest = (s.destination + ' ' + s.stops.join(' ')).toLowerCase();
-    return orig.includes(fromLocation.toLowerCase()) || dest.includes(toLocation.toLowerCase()) || fromLocation.toLowerCase().includes('kopargaon');
+    return isRouteMatchingSearch(s, fromLocation, toLocation);
   });
 
   const heavyTraffic = trafficRegions.find(r => r.currentTraffic === 'RED' || r.currentTraffic === 'ORANGE');
