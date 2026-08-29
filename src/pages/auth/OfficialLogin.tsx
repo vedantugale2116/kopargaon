@@ -51,7 +51,7 @@ export const OfficialLogin: React.FC = () => {
           navigate('/official');
         }
       } else {
-        const errorMsg = res.error || 'Invalid official ID/email or password.';
+        const errorMsg = res.error || 'Invalid official email or password.';
         setError(errorMsg);
         if (errorMsg.toLowerCase().includes('too many') || errorMsg.toLowerCase().includes('rate limit')) {
           setCooldown(15);
@@ -132,7 +132,7 @@ export const OfficialLogin: React.FC = () => {
                 disabled={isSubmitting}
                 value={officialId}
                 onChange={(e) => setOfficialId(e.target.value)}
-                placeholder="official@kopargaon.gov.in"
+                placeholder="admin@gmail.com"
                 className="w-full bg-[#fdf7ff] text-[#1d1b20] text-sm rounded-xl py-2.5 pl-10 pr-3 border border-[#cbc4d2] focus:outline-none focus:border-[#765b00] focus:ring-1 focus:ring-[#765b00] transition-all disabled:opacity-60"
               />
             </div>

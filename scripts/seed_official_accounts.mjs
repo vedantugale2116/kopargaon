@@ -25,13 +25,13 @@ const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 const OFFICIAL_ACCOUNTS = [
   {
-    email: 'admin@kopargaonconnect.demo',
-    password: 'OfficialPass@123',
+    email: 'admin@gmail.com',
+    password: 'pass@123',
     fullName: 'Municipal Administrator',
     officialRole: 'municipal_admin',
     officialId: 'ADM-01',
-    department: 'Municipal Administration & Mobility Command',
-    location: 'Kopargaon HQ',
+    department: 'Municipal Administration',
+    location: 'Kopargaon',
     phone: '+91 99220 11223'
   },
   {
@@ -86,9 +86,14 @@ async function seed() {
         if (userId) {
           await supabaseAdmin.auth.admin.updateUserById(userId, {
             password: acc.password,
-            email_confirm: true
+            email_confirm: true,
+            user_metadata: {
+              full_name: acc.fullName,
+              user_type: 'official',
+              official_role: acc.officialRole
+            }
           });
-          console.log(`  Updated password for ${acc.email}`);
+          console.log(`  Updated password and metadata for ${acc.email}`);
         }
       } else {
         console.error(`  Auth creation error: ${userError.message}`);

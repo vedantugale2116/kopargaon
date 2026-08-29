@@ -94,7 +94,7 @@ export function getAuthErrorMessage(error: any): string {
 
 // Error mapper specifically for Official Portal authentication
 export function getOfficialAuthErrorMessage(error: any): string {
-  if (!error) return 'Invalid official ID/email or password.';
+  if (!error) return 'Invalid official email or password.';
 
   const message = (error.message || error.error_description || String(error)).toLowerCase();
   const status = error.status || (error as any).statusCode;
@@ -124,5 +124,5 @@ export function getOfficialAuthErrorMessage(error: any): string {
   }
 
   // Default invalid credentials response for official login
-  return 'Invalid official ID/email or password.';
+  return 'Invalid official email or password.';
 }
