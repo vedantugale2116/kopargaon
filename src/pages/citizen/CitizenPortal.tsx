@@ -6,7 +6,7 @@ import { Navbar } from '../../components/common/Navbar';
 import { Footer } from '../../components/common/Footer';
 
 export const CitizenPortal: React.FC = () => {
-  const { user } = useAuth();
+  const { user, setCitizenRole } = useAuth();
   const { buses, trafficRegions, safetyAlerts, schedules } = useData();
   const navigate = useNavigate();
 
@@ -23,9 +23,24 @@ export const CitizenPortal: React.FC = () => {
         <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-[#cbc4d2]/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
           <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-[#e1d4fd]/30 to-transparent pointer-events-none"></div>
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-[#e1d4fd] text-[#4f378a] mb-2">
-              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
-              Kopargaon Smart Mobility Live
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-[#e1d4fd] text-[#4f378a]">
+                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
+                Kopargaon Smart Mobility Live
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCitizenRole('FARMER');
+                  navigate('/citizen/farmer');
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#e1d4fd] text-[#4f378a] hover:bg-[#cfbcff] active:scale-95 transition-all cursor-pointer border border-[#4f378a]/20 shadow-2xs"
+                title="Switch to Farmer Portal"
+              >
+                <span>GENERAL CITIZEN</span>
+                <span className="material-symbols-outlined text-[15px]">swap_horiz</span>
+                <span className="text-[10px] text-[#4f378a]/80 font-semibold">Switch to Farmer</span>
+              </button>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1d1b20] tracking-tight">
               Namaste, {user?.name || 'Citizen'}!

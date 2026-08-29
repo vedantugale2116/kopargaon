@@ -6,7 +6,7 @@ import { Navbar } from '../../components/common/Navbar';
 import { Footer } from '../../components/common/Footer';
 
 export const FarmerPortal: React.FC = () => {
-  const { user } = useAuth();
+  const { user, setCitizenRole } = useAuth();
   const { shipments, trips, buses } = useData();
   const navigate = useNavigate();
 
@@ -24,9 +24,24 @@ export const FarmerPortal: React.FC = () => {
         <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-[#cbc4d2]/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
           <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-emerald-100/40 to-transparent pointer-events-none"></div>
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 mb-2">
-              <span className="material-symbols-outlined text-[16px]">agriculture</span>
-              Agro Logistics & Smart Rural Transit
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                <span className="material-symbols-outlined text-[16px]">agriculture</span>
+                Agro Logistics & Smart Rural Transit
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCitizenRole('TRANSPORTER');
+                  navigate('/citizen/transporter');
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#e1d4fd] text-[#4f378a] hover:bg-[#cfbcff] active:scale-95 transition-all cursor-pointer border border-[#4f378a]/20 shadow-2xs"
+                title="Switch to Transporter Portal"
+              >
+                <span>FARMER</span>
+                <span className="material-symbols-outlined text-[15px]">swap_horiz</span>
+                <span className="text-[10px] text-[#4f378a]/80 font-semibold">Switch to Transporter</span>
+              </button>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1d1b20] tracking-tight">
               Farmer Cargo Hub — {user?.name || 'Balasaheb Vikhe'}
