@@ -18,6 +18,7 @@ export const CitizenRegister: React.FC = () => {
   });
 
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
@@ -37,6 +38,7 @@ export const CitizenRegister: React.FC = () => {
     if (isSubmitting || cooldown > 0) return;
 
     setError('');
+    setSuccessMessage('');
 
     if (!formData.fullName.trim()) {
       setError('Please enter your full name.');
@@ -54,7 +56,7 @@ export const CitizenRegister: React.FC = () => {
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match. Please re-enter.');
+      setError('Passwords do not match.');
       return;
     }
 
@@ -76,7 +78,13 @@ export const CitizenRegister: React.FC = () => {
       });
 
       if (res.success) {
-        navigate('/citizen/role');
+        if (res.sessionCreated) {
+          navigate('/citizen/role');
+        } else {
+          setSuccessMessage(
+            res.message || 'Account created successfully! Please verify your email before signing in.'
+          );
+        }
       } else {
         const errorMsg = res.error || 'Registration failed. Please check your details.';
         setError(errorMsg);
@@ -106,163 +114,192 @@ export const CitizenRegister: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-            <span className="material-symbols-outlined text-base shrink-0">error</span>
-            <span>{error}</span>
+          <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2">
+            <span className="material-symbols-outlined text-base shrink-0 mt-0.5">error</span>
+            <div className="flex-1">
+              <span>{error}</span>
+              {error.includes('already registered') && (
+                <div className="mt-1.5">
+                  <Link to="/citizen/login" className="font-bold underline text-red-800 hover:text-red-950">
+                    Click here to Sign In →
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-          {/* Full Name */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="fullName">
-              Full Name *
-            </label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#7a7582] text-[18px] pointer-events-none">
-                person
-              </span>
-              <input
-                id="fullName"
-                type="text"
-                required
-                disabled={isSubmitting}
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                placeholder="e.g. Balasaheb Vikhe"
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 pl-9 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
-              />
+        {successMessage && (
+          <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs rounded-xl space-y-2">
+            <div className="flex items-center gap-2 font-bold text-emerald-800">
+              <span className="material-symbols-outlined text-lg">check_circle</span>
+              <span>Account Created Successfully</span>
+            </div>
+            <p className="text-emerald-700 leading-relaxed">{successMessage}</p>
+            <div className="pt-2">
+              <Link
+                to="/citizen/login"
+                className="inline-block w-full text-center bg-[#4f378a] text-white font-bold py-2.5 px-4 rounded-xl text-xs hover:bg-[#382467] transition-all shadow-xs"
+              >
+                Go to Sign In
+              </Link>
             </div>
           </div>
+        )}
 
-          {/* Email Address */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="email">
-              Email Address (Login ID) *
-            </label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#7a7582] text-[18px] pointer-events-none">
-                mail
-              </span>
-              <input
-                id="email"
-                type="email"
-                required
-                disabled={isSubmitting}
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="name@example.com"
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 pl-9 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
-              />
-            </div>
-          </div>
-
-          {/* Location & DOB in Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {!successMessage && (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+            {/* Full Name */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="location">
-                City / Village *
+              <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="fullName">
+                Full Name *
               </label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#7a7582] text-[18px] pointer-events-none">
-                  location_on
+                  person
                 </span>
                 <input
-                  id="location"
+                  id="fullName"
                   type="text"
                   required
                   disabled={isSubmitting}
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="Kopargaon / Shirdi / Sanvatsar"
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  placeholder="e.g. Balasaheb Vikhe"
                   className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 pl-9 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
                 />
               </div>
             </div>
 
+            {/* Email Address */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="dob">
-                Date of Birth
+              <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="email">
+                Email Address (Login ID) *
               </label>
-              <input
-                id="dob"
-                type="date"
-                disabled={isSubmitting}
-                value={formData.dob}
-                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
-              />
-            </div>
-          </div>
-
-          {/* Password & Confirm Password */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="password">
-                Password *
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                disabled={isSubmitting}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Min 6 chars"
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
-              />
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#7a7582] text-[18px] pointer-events-none">
+                  mail
+                </span>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  disabled={isSubmitting}
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="name@example.com"
+                  className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 pl-9 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
+                />
+              </div>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="confirmPassword">
-                Confirm Password *
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                required
-                disabled={isSubmitting}
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                placeholder="Re-enter password"
-                className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
-              />
+            {/* Location & DOB in Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="location">
+                  City / Village *
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#7a7582] text-[18px] pointer-events-none">
+                    location_on
+                  </span>
+                  <input
+                    id="location"
+                    type="text"
+                    required
+                    disabled={isSubmitting}
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="Kopargaon / Shirdi / Sanvatsar"
+                    className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 pl-9 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="dob">
+                  Date of Birth
+                </label>
+                <input
+                  id="dob"
+                  type="date"
+                  disabled={isSubmitting}
+                  value={formData.dob}
+                  onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                  className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Terms & Conditions Checkbox */}
-          <div className="flex items-start gap-2 pt-2">
-            <input
-              id="terms"
-              type="checkbox"
-              disabled={isSubmitting}
-              checked={formData.termsAccepted}
-              onChange={(e) => setFormData({ ...formData, termsAccepted: e.target.checked })}
-              className="mt-1 w-4 h-4 rounded text-[#4f378a] focus:ring-[#4f378a] disabled:opacity-60"
-            />
-            <label htmlFor="terms" className="text-xs text-[#494551] leading-tight cursor-pointer">
-              I agree to the <span className="text-[#4f378a] font-semibold">Terms of Service</span> and <span className="text-[#4f378a] font-semibold">Municipal Data Privacy Policy</span> for Kopargaon Connect.
-            </label>
-          </div>
+            {/* Password & Confirm Password */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="password">
+                  Password *
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  disabled={isSubmitting}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Min 6 chars"
+                  className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
+                />
+              </div>
 
-          {/* Submit button */}
-          <button
-            type="submit"
-            disabled={isSubmitting || cooldown > 0}
-            className="w-full bg-[#4f378a] text-white font-bold text-sm py-3 rounded-xl mt-3 hover:bg-[#382467] active:scale-[0.98] transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-50 cursor-pointer"
-          >
-            {isSubmitting ? (
-              <span>CREATING ACCOUNT...</span>
-            ) : cooldown > 0 ? (
-              <span>PLEASE WAIT ({cooldown}s)</span>
-            ) : (
-              <>
-                <span>CREATE ACCOUNT</span>
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-              </>
-            )}
-          </button>
-        </form>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-[#4b4263] ml-1" htmlFor="confirmPassword">
+                  Confirm Password *
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  disabled={isSubmitting}
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  placeholder="Re-enter password"
+                  className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2 px-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] transition-all disabled:opacity-60"
+                />
+              </div>
+            </div>
+
+            {/* Terms & Conditions Checkbox */}
+            <div className="flex items-start gap-2 pt-2">
+              <input
+                id="terms"
+                type="checkbox"
+                disabled={isSubmitting}
+                checked={formData.termsAccepted}
+                onChange={(e) => setFormData({ ...formData, termsAccepted: e.target.checked })}
+                className="mt-1 w-4 h-4 rounded text-[#4f378a] focus:ring-[#4f378a] disabled:opacity-60"
+              />
+              <label htmlFor="terms" className="text-xs text-[#494551] leading-tight cursor-pointer">
+                I agree to the <span className="text-[#4f378a] font-semibold">Terms of Service</span> and <span className="text-[#4f378a] font-semibold">Municipal Data Privacy Policy</span> for Kopargaon Connect.
+              </label>
+            </div>
+
+            {/* Submit button */}
+            <button
+              type="submit"
+              disabled={isSubmitting || cooldown > 0}
+              className="w-full bg-[#4f378a] text-white font-bold text-sm py-3 rounded-xl mt-3 hover:bg-[#382467] active:scale-[0.98] transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              {isSubmitting ? (
+                <span>CREATING ACCOUNT...</span>
+              ) : cooldown > 0 ? (
+                <span>PLEASE WAIT ({cooldown}s)</span>
+              ) : (
+                <>
+                  <span>CREATE ACCOUNT</span>
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </>
+              )}
+            </button>
+          </form>
+        )}
 
         <div className="mt-5 text-center">
           <p className="text-xs text-[#494551]">

@@ -1,8 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import {
+  CitizenRole,
+  OfficialRole,
+  parseCitizenRole,
+  parseOfficialRole,
+  getAuthErrorMessage
+} from '../lib/authHelpers';
 
-export type CitizenRole = 'GENERAL_CITIZEN' | 'FARMER' | 'TRANSPORTER';
-export type OfficialRole = 'ADMIN' | 'DEPOT_MANAGER' | 'TRAFFIC_SAFETY_OFFICIAL' | 'TRANSPORT_OFFICIAL';
+export type { CitizenRole, OfficialRole };
+export { parseCitizenRole, parseOfficialRole, getAuthErrorMessage };
 
 export interface UserProfile {
   id: string;
@@ -23,6 +30,13 @@ export interface UserProfile {
   };
 }
 
+export interface RegisterResult {
+  success: boolean;
+  sessionCreated?: boolean;
+  message?: string;
+  error?: string;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
@@ -38,7 +52,7 @@ interface AuthContextType {
     location?: string;
     phone?: string;
     role?: CitizenRole;
-  }) => Promise<{ success: boolean; error?: string }>;
+  }) => Promise<RegisterResult>;
   setCitizenRole: (role: CitizenRole) => Promise<void>;
   loginOfficial: (officialIdOrEmail: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -48,97 +62,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Helper to normalize citizen role enum
-export function parseCitizenRole(roleStr?: string | null): CitizenRole {
-  if (!roleStr) return 'GENERAL_CITIZEN';
-  const norm = roleStr.trim().toLowerCase();
-  if (norm.includes('farmer')) return 'FARMER';
-  if (norm.includes('transporter')) return 'TRANSPORTER';
-  return 'GENERAL_CITIZEN';
-}
-
-// Helper to normalize official role enum
-export function parseOfficialRole(roleStr?: string | null): OfficialRole {
-  if (!roleStr) return 'ADMIN';
-  const norm = roleStr.trim().toLowerCase();
-  if (norm.includes('depot')) return 'DEPOT_MANAGER';
-  if (norm.includes('traffic') || norm.includes('safety')) return 'TRAFFIC_SAFETY_OFFICIAL';
-  if (norm.includes('transport')) return 'TRANSPORT_OFFICIAL';
-  return 'ADMIN';
-}
-
-// Standard user-friendly error mapper for Supabase Auth errors
-export function getAuthErrorMessage(error: any): string {
-  if (!error) return 'An unexpected error occurred. Please try again.';
-
-  const message = (error.message || error.error_description || String(error)).toLowerCase();
-  const status = error.status || (error as any).statusCode;
-  const code = (error.code || '').toLowerCase();
-
-  // Rate Limiting (429 / over rate limit)
-  if (
-    status === 429 ||
-    code.includes('rate_limit') ||
-    code.includes('over_email_send_rate_limit') ||
-    code.includes('over_request_rate_limit') ||
-    message.includes('rate limit') ||
-    message.includes('too many requests')
-  ) {
-    return 'Too many authentication attempts. Please wait a moment before trying again.';
-  }
-
-  // Invalid Credentials
-  if (
-    message.includes('invalid login credentials') ||
-    message.includes('invalid_credentials') ||
-    message.includes('invalid_grant') ||
-    message.includes('user not found') ||
-    message.includes('wrong password')
-  ) {
-    return 'Invalid email or password.';
-  }
-
-  // Already Registered
-  if (
-    code.includes('user_already_exists') ||
-    message.includes('already registered') ||
-    message.includes('unique constraint') ||
-    message.includes('user already exists')
-  ) {
-    return 'This email is already registered. Please sign in instead.';
-  }
-
-  // Weak Password
-  if (
-    code.includes('weak_password') ||
-    message.includes('password should be at least') ||
-    message.includes('weak password')
-  ) {
-    return 'Password does not meet the required requirements.';
-  }
-
-  // Email Confirmation Required
-  if (
-    message.includes('email not confirmed') ||
-    code.includes('email_not_confirmed')
-  ) {
-    return 'Email not confirmed yet. Please check your inbox or contact support.';
-  }
-
-  // Network or Connection failure
-  if (
-    message.includes('fetch failed') ||
-    message.includes('network') ||
-    message.includes('timeout') ||
-    message.includes('failed to fetch') ||
-    message.includes('offline')
-  ) {
-    return 'Unable to connect to the authentication service. Please try again.';
-  }
-
-  return 'Authentication failed. Please check your details and try again.';
-}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -297,7 +220,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Citizen Registration via Supabase Auth (EXACTLY ONE signUp REQUEST, NO DUPLICATE CALLS)
+  // Citizen Registration via Supabase Auth (EXACTLY ONE signUp REQUEST)
   const registerCitizen = async (data: {
     fullName: string;
     email: string;
@@ -307,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     location?: string;
     phone?: string;
     role?: CitizenRole;
-  }): Promise<{ success: boolean; error?: string }> => {
+  }): Promise<RegisterResult> => {
     if (isRegisteringRef.current) {
       return { success: false, error: 'Registration request is currently in progress. Please wait.' };
     }
@@ -324,7 +247,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'Password must be at least 6 characters long.' };
     }
     if (data.password !== data.confirmPassword) {
-      return { success: false, error: 'Passwords do not match. Please re-enter.' };
+      return { success: false, error: 'Passwords do not match.' };
     }
 
     const initialCitizenRole = data.role ? data.role.toLowerCase() : 'general_citizen';
@@ -363,10 +286,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           location: data.location?.trim() || 'Kopargaon',
           dob: data.dob
         };
-        setUser(u);
 
-        // Async sync profile row to DB if session exists
+        // If Supabase returned an active session (auto-confirm enabled)
         if (authData.session) {
+          setUser(u);
           supabase.from('profiles').upsert({
             id: authData.user.id,
             full_name: data.fullName.trim(),
@@ -378,9 +301,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             dob: data.dob || null,
             created_at: new Date().toISOString(),
           }).then(() => {}, (err) => console.warn('Profile sync:', err));
+
+          return { success: true, sessionCreated: true };
         }
 
-        return { success: true };
+        // If no session was created (email confirmation is required)
+        // DO NOT set user in memory or pretend user is logged in
+        return {
+          success: true,
+          sessionCreated: false,
+          message: 'Account created successfully! Please verify your email before signing in.'
+        };
       }
 
       return { success: false, error: 'Failed to create account. Please try again.' };
@@ -392,7 +323,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Citizen Login (EXACTLY ONE signInWithPassword REQUEST, NO DUPLICATE CALLS)
+  // Citizen Login (EXACTLY ONE signInWithPassword REQUEST)
   const loginCitizen = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     if (isLoggingInRef.current) {
       return { success: false, error: 'Login is already processing. Please wait.' };
