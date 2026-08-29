@@ -37,12 +37,26 @@ export interface RegisterResult {
   error?: string;
 }
 
+export interface LoginCitizenResult {
+  success: boolean;
+  user?: UserProfile;
+  citizenRole?: CitizenRole;
+  error?: string;
+}
+
+export interface LoginOfficialResult {
+  success: boolean;
+  user?: UserProfile;
+  officialRole?: OfficialRole;
+  error?: string;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isOfficial: boolean;
   authLoading: boolean;
-  loginCitizen: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  loginCitizen: (email: string, pass: string) => Promise<LoginCitizenResult>;
   registerCitizen: (data: {
     fullName: string;
     email: string;
@@ -54,7 +68,7 @@ interface AuthContextType {
     role?: CitizenRole;
   }) => Promise<RegisterResult>;
   setCitizenRole: (role: CitizenRole) => Promise<void>;
-  loginOfficial: (officialIdOrEmail: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  loginOfficial: (officialIdOrEmail: string, pass: string) => Promise<LoginOfficialResult>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
@@ -306,7 +320,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // If no session was created (email confirmation is required)
-        // DO NOT set user in memory or pretend user is logged in
         return {
           success: true,
           sessionCreated: false,
@@ -324,7 +337,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Citizen Login (EXACTLY ONE signInWithPassword REQUEST)
-  const loginCitizen = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
+  const loginCitizen = async (email: string, pass: string): Promise<LoginCitizenResult> => {
     if (isLoggingInRef.current) {
       return { success: false, error: 'Login is already processing. Please wait.' };
     }
@@ -356,7 +369,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (loadedUser) {
           setUser(loadedUser);
-          return { success: true };
+          return {
+            success: true,
+            user: loadedUser,
+            citizenRole: loadedUser.citizenRole
+          };
         }
       }
 
@@ -370,7 +387,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Official Login (EXACTLY ONE signInWithPassword REQUEST)
-  const loginOfficial = async (officialIdOrEmail: string, pass: string): Promise<{ success: boolean; error?: string }> => {
+  const loginOfficial = async (officialIdOrEmail: string, pass: string): Promise<LoginOfficialResult> => {
     if (isLoggingInOfficialRef.current) {
       return { success: false, error: 'Official authentication in progress. Please wait.' };
     }
@@ -411,19 +428,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
         }
 
+        const officialRole = parseOfficialRole(profile.official_role);
         const officialUser: UserProfile = {
           id: profile.id,
           officialId: profile.official_id || 'ADM-01',
           name: profile.full_name || 'Official Staff',
           email: profile.email || cleanInput,
           roleType: 'OFFICIAL',
-          officialRole: parseOfficialRole(profile.official_role),
+          officialRole,
           department: profile.department || 'Municipal HQ',
           location: profile.location || 'Kopargaon'
         };
 
         setUser(officialUser);
-        return { success: true };
+        return {
+          success: true,
+          user: officialUser,
+          officialRole
+        };
       }
 
       return { success: false, error: 'Official authentication failed.' };

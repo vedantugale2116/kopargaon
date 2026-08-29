@@ -20,6 +20,61 @@ export function parseOfficialRole(roleStr?: string | null): OfficialRole {
   return 'ADMIN';
 }
 
+// Predefined Demo Accounts for Quick Login
+export const CITIZEN_DEMO_ACCOUNTS = [
+  {
+    id: 'farmer',
+    label: 'Farmer',
+    role: 'FARMER' as CitizenRole,
+    email: 'demo.farmer@kopargaonconnect.demo',
+    password: 'DemoPass@123',
+    icon: 'agriculture'
+  },
+  {
+    id: 'transporter',
+    label: 'Transporter',
+    role: 'TRANSPORTER' as CitizenRole,
+    email: 'demo.transporter@kopargaonconnect.demo',
+    password: 'DemoPass@123',
+    icon: 'local_shipping'
+  },
+  {
+    id: 'citizen',
+    label: 'General Citizen',
+    role: 'GENERAL_CITIZEN' as CitizenRole,
+    email: 'demo.citizen@kopargaonconnect.demo',
+    password: 'DemoPass@123',
+    icon: 'person'
+  }
+];
+
+export const OFFICIAL_DEMO_ACCOUNTS = [
+  {
+    id: 'admin',
+    label: 'Municipal Admin',
+    role: 'ADMIN' as OfficialRole,
+    email: 'demo.admin@kopargaonconnect.demo',
+    password: 'DemoPass@123',
+    icon: 'admin_panel_settings'
+  },
+  {
+    id: 'depot',
+    label: 'Depot Manager',
+    role: 'DEPOT_MANAGER' as OfficialRole,
+    email: 'demo.depot@kopargaonconnect.demo',
+    password: 'DemoPass@123',
+    icon: 'directions_bus'
+  },
+  {
+    id: 'traffic',
+    label: 'Traffic & Safety',
+    role: 'TRAFFIC_SAFETY_OFFICIAL' as OfficialRole,
+    email: 'demo.traffic@kopargaonconnect.demo',
+    password: 'DemoPass@123',
+    icon: 'traffic'
+  }
+];
+
 // Standard user-friendly error mapper for Supabase Auth errors
 export function getAuthErrorMessage(error: any): string {
   if (!error) return 'An unexpected error occurred. Please try again.';

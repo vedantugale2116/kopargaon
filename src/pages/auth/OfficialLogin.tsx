@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LOGO_URL } from '../../components/common/Navbar';
+import { OFFICIAL_DEMO_ACCOUNTS } from '../../lib/authHelpers';
 
 export const OfficialLogin: React.FC = () => {
   const { loginOfficial, resetPassword } = useAuth();
@@ -28,9 +29,7 @@ export const OfficialLogin: React.FC = () => {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const performLogin = async (loginId: string, loginPass: string) => {
     // Strict request locking: prevent multiple simultaneous submissions
     if (isSubmitting || cooldown > 0) return;
 
@@ -39,10 +38,14 @@ export const OfficialLogin: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const res = await loginOfficial(officialId, password);
+      const res = await loginOfficial(loginId, loginPass);
       if (res.success) {
         if (fromPath && fromPath.startsWith('/official')) {
           navigate(fromPath, { replace: true });
+        } else if (res.officialRole === 'DEPOT_MANAGER') {
+          navigate('/official/depot');
+        } else if (res.officialRole === 'TRAFFIC_SAFETY_OFFICIAL') {
+          navigate('/official/traffic-safety');
         } else {
           navigate('/official');
         }
@@ -58,6 +61,17 @@ export const OfficialLogin: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performLogin(officialId, password);
+  };
+
+  const handleDemoSelect = (demoEmail: string, demoPass: string) => {
+    setOfficialId(demoEmail);
+    setPassword(demoPass);
+    performLogin(demoEmail, demoPass);
   };
 
   const handleForgotPassword = async () => {
@@ -195,8 +209,38 @@ export const OfficialLogin: React.FC = () => {
           </button>
         </form>
 
+        {/* Official Demo Accounts Section */}
+        <div className="mt-5 pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#765b00] flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm text-[#765b00]">verified_user</span>
+              Official Demo Accounts
+            </span>
+            <span className="text-[10px] text-gray-400">Database Role Verified</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5">
+            {OFFICIAL_DEMO_ACCOUNTS.map((acc) => (
+              <button
+                key={acc.id}
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => handleDemoSelect(acc.email, acc.password)}
+                className="flex flex-col items-center justify-center p-2 rounded-xl bg-[#fff8ed] hover:bg-[#ffeed3] border border-[#f3ddb3] transition-all text-center cursor-pointer group disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-base text-[#765b00] group-hover:scale-110 transition-transform">
+                  {acc.icon}
+                </span>
+                <span className="text-[10px] font-semibold text-[#1d1b20] mt-0.5 leading-tight">
+                  {acc.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* System Trust Badge */}
-        <div className="w-full mt-6 pt-3 border-t border-gray-100 flex items-center justify-center gap-2">
+        <div className="w-full mt-5 pt-3 border-t border-gray-100 flex items-center justify-center gap-2">
           <div className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
