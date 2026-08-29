@@ -5,11 +5,12 @@ import {
   OfficialRole,
   parseCitizenRole,
   parseOfficialRole,
-  getAuthErrorMessage
+  getAuthErrorMessage,
+  getOfficialAuthErrorMessage
 } from '../lib/authHelpers';
 
 export type { CitizenRole, OfficialRole };
-export { parseCitizenRole, parseOfficialRole, getAuthErrorMessage };
+export { parseCitizenRole, parseOfficialRole, getAuthErrorMessage, getOfficialAuthErrorMessage };
 
 export interface UserProfile {
   id: string;
@@ -407,7 +408,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        return { success: false, error: getAuthErrorMessage(error) };
+        return { success: false, error: getOfficialAuthErrorMessage(error) };
       }
 
       if (data?.user && data.session) {
@@ -424,7 +425,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null);
           return {
             success: false,
-            error: 'Access Denied: This account is not registered as an authorized Municipal Official.'
+            error: 'This account is not authorized for the Official Portal.'
           };
         }
 
@@ -448,10 +449,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       }
 
-      return { success: false, error: 'Official authentication failed.' };
+      return { success: false, error: 'Invalid official ID/email or password.' };
     } catch (err: any) {
       console.error('Official login exception:', err);
-      return { success: false, error: getAuthErrorMessage(err) };
+      return { success: false, error: getOfficialAuthErrorMessage(err) };
     } finally {
       isLoggingInOfficialRef.current = false;
     }

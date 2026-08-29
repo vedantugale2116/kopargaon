@@ -51,7 +51,7 @@ export const OfficialLogin: React.FC = () => {
           navigate('/official');
         }
       } else {
-        const errorMsg = res.error || 'Access Denied. Please verify your official credentials.';
+        const errorMsg = res.error || 'Invalid official ID/email or password.';
         setError(errorMsg);
         if (errorMsg.toLowerCase().includes('too many') || errorMsg.toLowerCase().includes('rate limit')) {
           setCooldown(15);

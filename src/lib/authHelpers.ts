@@ -20,7 +20,7 @@ export function parseOfficialRole(roleStr?: string | null): OfficialRole {
   return 'ADMIN';
 }
 
-// Standard user-friendly error mapper for Supabase Auth errors
+// Standard user-friendly error mapper for Supabase Auth errors (Citizen)
 export function getAuthErrorMessage(error: any): string {
   if (!error) return 'An unexpected error occurred. Please try again.';
 
@@ -37,7 +37,7 @@ export function getAuthErrorMessage(error: any): string {
     message.includes('rate limit') ||
     message.includes('too many requests')
   ) {
-    return 'Too many authentication attempts. Please wait a moment before trying again.';
+    return 'Too many login attempts. Please wait a moment and try again.';
   }
 
   // Invalid Credentials
@@ -89,5 +89,40 @@ export function getAuthErrorMessage(error: any): string {
     return 'Unable to connect to the authentication service. Please try again.';
   }
 
-  return 'Authentication failed. Please check your details and try again.';
+  return 'Invalid email or password.';
+}
+
+// Error mapper specifically for Official Portal authentication
+export function getOfficialAuthErrorMessage(error: any): string {
+  if (!error) return 'Invalid official ID/email or password.';
+
+  const message = (error.message || error.error_description || String(error)).toLowerCase();
+  const status = error.status || (error as any).statusCode;
+  const code = (error.code || '').toLowerCase();
+
+  // Rate Limiting (429 / over rate limit)
+  if (
+    status === 429 ||
+    code.includes('rate_limit') ||
+    code.includes('over_email_send_rate_limit') ||
+    code.includes('over_request_rate_limit') ||
+    message.includes('rate limit') ||
+    message.includes('too many requests')
+  ) {
+    return 'Too many login attempts. Please wait a moment and try again.';
+  }
+
+  // Network or Connection failure
+  if (
+    message.includes('fetch failed') ||
+    message.includes('network') ||
+    message.includes('timeout') ||
+    message.includes('failed to fetch') ||
+    message.includes('offline')
+  ) {
+    return 'Unable to connect to the authentication service. Please try again.';
+  }
+
+  // Default invalid credentials response for official login
+  return 'Invalid official ID/email or password.';
 }

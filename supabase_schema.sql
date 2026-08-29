@@ -162,97 +162,58 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.passenger_bookings;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.safety_alerts;
 
 -- =========================================================================
--- 8. PREDEFINED DEMO USERS SEED SCRIPT
--- Password for all demo accounts: DemoPass@123
--- Run this block in Supabase SQL Editor to create ready-to-login verified demo accounts.
+-- 8. OFFICIAL ACCOUNTS SEED SCRIPT (REAL SUPABASE AUTH & PROFILES)
+-- Password for all official accounts: OfficialPass@123
+-- Run this block in Supabase SQL Editor (SQL Editor -> New Query -> Run)
 -- =========================================================================
 
 DO $$
 DECLARE
-  v_farmer_id UUID := '11111111-1111-4111-8111-111111111111';
-  v_transporter_id UUID := '22222222-2222-4222-8222-222222222222';
-  v_citizen_id UUID := '33333333-3333-4333-8333-333333333333';
   v_admin_id UUID := '44444444-4444-4444-8444-444444444444';
   v_depot_id UUID := '55555555-5555-4555-8555-555555555555';
   v_traffic_id UUID := '66666666-6666-4666-8666-666666666666';
-  v_encrypted_pass TEXT := crypt('DemoPass@123', gen_salt('bf'));
+  v_encrypted_pass TEXT := crypt('OfficialPass@123', gen_salt('bf'));
 BEGIN
-  -- 8.1 Farmer Demo Account
+  -- 8.1 Municipal Admin Account
+  -- Email: admin@kopargaonconnect.demo
   INSERT INTO auth.users (
     id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud
   ) VALUES (
-    v_farmer_id, '00000000-0000-0000-0000-000000000000', 'demo.farmer@kopargaonconnect.demo', v_encrypted_pass, now(),
-    '{"provider":"email","providers":["email"]}', '{"full_name":"Balasaheb Shinde","user_type":"citizen","citizen_role":"farmer","location":"Sanvatsar"}',
+    v_admin_id, '00000000-0000-0000-0000-000000000000', 'admin@kopargaonconnect.demo', v_encrypted_pass, now(),
+    '{"provider":"email","providers":["email"]}', '{"full_name":"Municipal Administrator","user_type":"official","official_role":"municipal_admin","department":"Municipal Command HQ"}',
     now(), now(), 'authenticated', 'authenticated'
-  ) ON CONFLICT (id) DO UPDATE SET encrypted_password = v_encrypted_pass, email_confirmed_at = now();
-
-  INSERT INTO public.profiles (id, full_name, email, phone, user_type, citizen_role, location, dob)
-  VALUES (v_farmer_id, 'Balasaheb Shinde', 'demo.farmer@kopargaonconnect.demo', '+91 98221 44550', 'citizen', 'farmer', 'Sanvatsar, Kopargaon', '1978-06-15')
-  ON CONFLICT (id) DO UPDATE SET user_type = 'citizen', citizen_role = 'farmer';
-
-  -- 8.2 Transporter Demo Account
-  INSERT INTO auth.users (
-    id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud
-  ) VALUES (
-    v_transporter_id, '00000000-0000-0000-0000-000000000000', 'demo.transporter@kopargaonconnect.demo', v_encrypted_pass, now(),
-    '{"provider":"email","providers":["email"]}', '{"full_name":"Ramesh Gaikwad","user_type":"citizen","citizen_role":"transporter","location":"Kopargaon MIDC"}',
-    now(), now(), 'authenticated', 'authenticated'
-  ) ON CONFLICT (id) DO UPDATE SET encrypted_password = v_encrypted_pass, email_confirmed_at = now();
-
-  INSERT INTO public.profiles (id, full_name, email, phone, user_type, citizen_role, location, dob)
-  VALUES (v_transporter_id, 'Ramesh Gaikwad', 'demo.transporter@kopargaonconnect.demo', '+91 94237 88991', 'citizen', 'transporter', 'Kopargaon MIDC', '1984-11-20')
-  ON CONFLICT (id) DO UPDATE SET user_type = 'citizen', citizen_role = 'transporter';
-
-  -- 8.3 General Citizen Demo Account
-  INSERT INTO auth.users (
-    id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud
-  ) VALUES (
-    v_citizen_id, '00000000-0000-0000-0000-000000000000', 'demo.citizen@kopargaonconnect.demo', v_encrypted_pass, now(),
-    '{"provider":"email","providers":["email"]}', '{"full_name":"Pooja Deshmukh","user_type":"citizen","citizen_role":"general_citizen","location":"Kopargaon Town"}',
-    now(), now(), 'authenticated', 'authenticated'
-  ) ON CONFLICT (id) DO UPDATE SET encrypted_password = v_encrypted_pass, email_confirmed_at = now();
-
-  INSERT INTO public.profiles (id, full_name, email, phone, user_type, citizen_role, location, dob)
-  VALUES (v_citizen_id, 'Pooja Deshmukh', 'demo.citizen@kopargaonconnect.demo', '+91 98812 33441', 'citizen', 'general_citizen', 'Kopargaon Town', '1995-03-25')
-  ON CONFLICT (id) DO UPDATE SET user_type = 'citizen', citizen_role = 'general_citizen';
-
-  -- 8.4 Municipal Admin Demo Account
-  INSERT INTO auth.users (
-    id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud
-  ) VALUES (
-    v_admin_id, '00000000-0000-0000-0000-000000000000', 'demo.admin@kopargaonconnect.demo', v_encrypted_pass, now(),
-    '{"provider":"email","providers":["email"]}', '{"full_name":"Shantanu Kulkarni (Admin)","user_type":"official","official_role":"municipal_admin","department":"Municipal Command HQ"}',
-    now(), now(), 'authenticated', 'authenticated'
-  ) ON CONFLICT (id) DO UPDATE SET encrypted_password = v_encrypted_pass, email_confirmed_at = now();
+  ) ON CONFLICT (id) DO UPDATE SET encrypted_password = v_encrypted_pass, email = 'admin@kopargaonconnect.demo', email_confirmed_at = now();
 
   INSERT INTO public.profiles (id, full_name, email, phone, user_type, official_role, official_id, department, location)
-  VALUES (v_admin_id, 'Shantanu Kulkarni (Admin)', 'demo.admin@kopargaonconnect.demo', '+91 99220 11223', 'official', 'municipal_admin', 'ADM-01', 'Municipal Administration & Mobility Command', 'Kopargaon HQ')
-  ON CONFLICT (id) DO UPDATE SET user_type = 'official', official_role = 'municipal_admin';
+  VALUES (v_admin_id, 'Municipal Administrator', 'admin@kopargaonconnect.demo', '+91 99220 11223', 'official', 'municipal_admin', 'ADM-01', 'Municipal Administration & Mobility Command', 'Kopargaon HQ')
+  ON CONFLICT (id) DO UPDATE SET user_type = 'official', official_role = 'municipal_admin', email = 'admin@kopargaonconnect.demo';
 
-  -- 8.5 Depot Operations Manager Demo Account
+  -- 8.2 Depot Operations Manager Account
+  -- Email: depot@kopargaonconnect.demo
   INSERT INTO auth.users (
     id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud
   ) VALUES (
-    v_depot_id, '00000000-0000-0000-0000-000000000000', 'demo.depot@kopargaonconnect.demo', v_encrypted_pass, now(),
-    '{"provider":"email","providers":["email"]}', '{"full_name":"Vijay Kale (Depot Head)","user_type":"official","official_role":"depot_manager","department":"Kopargaon Central Bus Depot"}',
+    v_depot_id, '00000000-0000-0000-0000-000000000000', 'depot@kopargaonconnect.demo', v_encrypted_pass, now(),
+    '{"provider":"email","providers":["email"]}', '{"full_name":"Depot Operations Manager","user_type":"official","official_role":"depot_manager","department":"Kopargaon Central Bus Depot"}',
     now(), now(), 'authenticated', 'authenticated'
-  ) ON CONFLICT (id) DO UPDATE SET encrypted_password = v_encrypted_pass, email_confirmed_at = now();
+  ) ON CONFLICT (id) DO UPDATE SET encrypted_password = v_encrypted_pass, email = 'depot@kopargaonconnect.demo', email_confirmed_at = now();
 
   INSERT INTO public.profiles (id, full_name, email, phone, user_type, official_role, official_id, department, location)
-  VALUES (v_depot_id, 'Vijay Kale (Depot Head)', 'demo.depot@kopargaonconnect.demo', '+91 98230 55667', 'official', 'depot_manager', 'DPT-04', 'MSRTC Kopargaon Depot Operations', 'Kopargaon Central Depot')
-  ON CONFLICT (id) DO UPDATE SET user_type = 'official', official_role = 'depot_manager';
+  VALUES (v_depot_id, 'Depot Operations Manager', 'depot@kopargaonconnect.demo', '+91 98230 55667', 'official', 'depot_manager', 'DPT-04', 'MSRTC Kopargaon Depot Operations', 'Kopargaon Central Depot')
+  ON CONFLICT (id) DO UPDATE SET user_type = 'official', official_role = 'depot_manager', email = 'depot@kopargaonconnect.demo';
 
-  -- 8.6 Traffic & Road Safety Official Demo Account
+  -- 8.3 Traffic & Road Safety Official Account
+  -- Email: traffic@kopargaonconnect.demo
   INSERT INTO auth.users (
     id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud
   ) VALUES (
-    v_traffic_id, '00000000-0000-0000-0000-000000000000', 'demo.traffic@kopargaonconnect.demo', v_encrypted_pass, now(),
-    '{"provider":"email","providers":["email"]}', '{"full_name":"Sanjay Jadhav (Traffic Inspector)","user_type":"official","official_role":"traffic_safety","department":"Traffic & Transit Police"}',
+    v_traffic_id, '00000000-0000-0000-0000-000000000000', 'traffic@kopargaonconnect.demo', v_encrypted_pass, now(),
+    '{"provider":"email","providers":["email"]}', '{"full_name":"Traffic & Safety Inspector","user_type":"official","official_role":"traffic_safety","department":"Traffic & Transit Police"}',
     now(), now(), 'authenticated', 'authenticated'
-  ) ON CONFLICT (id) DO UPDATE SET encrypted_password = v_encrypted_pass, email_confirmed_at = now();
+  ) ON CONFLICT (id) DO UPDATE SET encrypted_password = v_encrypted_pass, email = 'traffic@kopargaonconnect.demo', email_confirmed_at = now();
 
   INSERT INTO public.profiles (id, full_name, email, phone, user_type, official_role, official_id, department, location)
-  VALUES (v_traffic_id, 'Sanjay Jadhav (Traffic Inspector)', 'demo.traffic@kopargaonconnect.demo', '+91 97650 33221', 'official', 'traffic_safety', 'TRF-09', 'Kopargaon Traffic & Highway Safety Division', 'Shivaji Chowk Police Post')
-  ON CONFLICT (id) DO UPDATE SET user_type = 'official', official_role = 'traffic_safety';
+  VALUES (v_traffic_id, 'Traffic & Safety Inspector', 'traffic@kopargaonconnect.demo', '+91 97650 33221', 'official', 'traffic_safety', 'TRF-09', 'Kopargaon Traffic & Highway Safety Division', 'Shivaji Chowk Police Post')
+  ON CONFLICT (id) DO UPDATE SET user_type = 'official', official_role = 'traffic_safety', email = 'traffic@kopargaonconnect.demo';
 
 END $$;
