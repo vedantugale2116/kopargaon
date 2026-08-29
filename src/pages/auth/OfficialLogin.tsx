@@ -29,17 +29,6 @@ export const OfficialLogin: React.FC = () => {
     }
   };
 
-  const handleQuickOfficialLogin = async (id: string, pass: string) => {
-    setOfficialId(id);
-    setPassword(pass);
-    setLoading(true);
-    const res = await loginOfficial(id, pass);
-    setLoading(false);
-    if (res.success) {
-      navigate('/official');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#fdf7ff] flex items-center justify-center p-4 relative overflow-hidden font-sans">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-[#cbc4d2]/40 p-6 sm:p-8 relative z-10 animate-in fade-in zoom-in-95 duration-300">
@@ -127,7 +116,7 @@ export const OfficialLogin: React.FC = () => {
             </div>
           </div>
 
-          {/* Sign In Button with #FFD814 / #765b00 theme from Stitch */}
+          {/* Sign In Button */}
           <button
             type="submit"
             disabled={loading}
@@ -144,49 +133,8 @@ export const OfficialLogin: React.FC = () => {
           </button>
         </form>
 
-        {/* Quick Pre-authorized Official Logins */}
-        <div className="mt-5 pt-4 border-t border-gray-100">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 text-center">
-            Pre-Authorized Official Roles (1-Click Demo Access)
-          </div>
-          <div className="space-y-1.5">
-            <button
-              onClick={() => handleQuickOfficialLogin('admin@kopargaon.gov.in', 'adminpassword')}
-              className="w-full px-3 py-2 bg-[#FFD814]/15 hover:bg-[#FFD814]/30 text-[#765b00] rounded-xl text-xs font-bold transition-colors flex items-center justify-between border border-[#FFD814]/40"
-            >
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-base">admin_panel_settings</span>
-                <span>Municipal HQ Admin (Full System)</span>
-              </div>
-              <span className="text-[10px] text-gray-500 font-mono">ADM-01</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickOfficialLogin('depot@kopargaon.gov.in', 'depotpassword')}
-              className="w-full px-3 py-2 bg-[#f8f2fa] hover:bg-[#e1d4fd] text-[#4f378a] rounded-xl text-xs font-bold transition-colors flex items-center justify-between border border-[#cbc4d2]/30"
-            >
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-base">warehouse</span>
-                <span>Depot Operations Manager</span>
-              </div>
-              <span className="text-[10px] text-gray-500 font-mono">DEPOT-04</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickOfficialLogin('safety@kopargaon.gov.in', 'safetypassword')}
-              className="w-full px-3 py-2 bg-[#f8f2fa] hover:bg-[#e1d4fd] text-[#4f378a] rounded-xl text-xs font-bold transition-colors flex items-center justify-between border border-[#cbc4d2]/30"
-            >
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-base">traffic</span>
-                <span>Traffic & Road Safety Bureau</span>
-              </div>
-              <span className="text-[10px] text-gray-500 font-mono">TRAFFIC-09</span>
-            </button>
-          </div>
-        </div>
-
         {/* System Trust Badge */}
-        <div className="w-full mt-5 pt-3 border-t border-gray-100 flex items-center justify-center gap-2">
+        <div className="w-full mt-6 pt-3 border-t border-gray-100 flex items-center justify-center gap-2">
           <div className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>

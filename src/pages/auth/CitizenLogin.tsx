@@ -29,17 +29,6 @@ export const CitizenLogin: React.FC = () => {
     }
   };
 
-  const handleQuickDemoLogin = async (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('password123');
-    setLoading(true);
-    const res = await loginCitizen(demoEmail, 'password123');
-    setLoading(false);
-    if (res.success) {
-      navigate('/citizen/role');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#f5eff7] flex items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Background SVG circles */}
@@ -89,7 +78,7 @@ export const CitizenLogin: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="farmer@kopargaon.gov.in"
+                placeholder="citizen@kopargaon.gov.in"
                 className="w-full bg-[#f8f2fa] text-[#1d1b20] text-sm rounded-xl py-2.5 pl-10 pr-3 border border-[#e0e2e6] focus:outline-none focus:border-[#4f378a] focus:ring-1 focus:ring-[#4f378a] transition-all"
               />
             </div>
@@ -139,7 +128,7 @@ export const CitizenLogin: React.FC = () => {
             </div>
           </div>
 
-          {/* Submit Button with #C8D9E6 Accent Theme from Stitch */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -157,33 +146,6 @@ export const CitizenLogin: React.FC = () => {
             )}
           </button>
         </form>
-
-        {/* Quick Demo Logins for Evaluation */}
-        <div className="mt-4 pt-3 border-t border-gray-100">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 text-center">
-            One-Click Demo Credentials
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            <button
-              onClick={() => handleQuickDemoLogin('farmer@kopargaon.gov.in')}
-              className="px-2 py-1.5 bg-[#f8f2fa] hover:bg-[#e1d4fd] text-[#4f378a] rounded-lg text-[10px] font-bold transition-colors truncate"
-            >
-              🌾 Farmer
-            </button>
-            <button
-              onClick={() => handleQuickDemoLogin('transporter@kopargaon.gov.in')}
-              className="px-2 py-1.5 bg-[#f8f2fa] hover:bg-[#e1d4fd] text-[#4f378a] rounded-lg text-[10px] font-bold transition-colors truncate"
-            >
-              🚛 Transporter
-            </button>
-            <button
-              onClick={() => handleQuickDemoLogin('citizen@kopargaon.gov.in')}
-              className="px-2 py-1.5 bg-[#f8f2fa] hover:bg-[#e1d4fd] text-[#4f378a] rounded-lg text-[10px] font-bold transition-colors truncate"
-            >
-              👤 Citizen
-            </button>
-          </div>
-        </div>
 
         {/* Don't have an account & Guest options */}
         <div className="mt-6 flex flex-col items-center gap-3">
