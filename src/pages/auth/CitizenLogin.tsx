@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LOGO_URL } from '../../components/common/Navbar';
-import { CITIZEN_DEMO_ACCOUNTS } from '../../lib/authHelpers';
 
 export const CitizenLogin: React.FC = () => {
   const { loginCitizen, resetPassword } = useAuth();
@@ -29,7 +28,9 @@ export const CitizenLogin: React.FC = () => {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  const performLogin = async (loginEmail: string, loginPass: string) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     // Strict request locking: prevent multiple simultaneous submissions
     if (isSubmitting || cooldown > 0) return;
 
@@ -38,7 +39,7 @@ export const CitizenLogin: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const res = await loginCitizen(loginEmail, loginPass);
+      const res = await loginCitizen(email, password);
       if (res.success) {
         if (fromPath && fromPath.startsWith('/citizen')) {
           navigate(fromPath, { replace: true });
@@ -61,17 +62,6 @@ export const CitizenLogin: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await performLogin(email, password);
-  };
-
-  const handleDemoSelect = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    performLogin(demoEmail, demoPass);
   };
 
   const handleForgotPassword = async () => {
@@ -223,38 +213,8 @@ export const CitizenLogin: React.FC = () => {
           </button>
         </form>
 
-        {/* Demo Accounts Section */}
-        <div className="mt-5 pt-4 border-t border-gray-100">
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm text-[#4f378a]">badge</span>
-              Use Demo Account
-            </span>
-            <span className="text-[10px] text-gray-400">Live Supabase Auth</span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-1.5">
-            {CITIZEN_DEMO_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.id}
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleDemoSelect(acc.email, acc.password)}
-                className="flex flex-col items-center justify-center p-2 rounded-xl bg-[#f8f2fa] hover:bg-[#ede5f7] border border-[#e4dcf1] transition-all text-center cursor-pointer group disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-base text-[#4f378a] group-hover:scale-110 transition-transform">
-                  {acc.icon}
-                </span>
-                <span className="text-[10px] font-semibold text-[#1d1b20] mt-0.5 leading-tight">
-                  {acc.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Don't have an account options */}
-        <div className="mt-5 flex flex-col items-center gap-3">
+        <div className="mt-6 flex flex-col items-center gap-3">
           <p className="text-xs text-[#494551]">Don't have an account?</p>
           <div className="w-full">
             <Link
