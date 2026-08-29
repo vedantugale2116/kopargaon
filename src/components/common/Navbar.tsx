@@ -31,7 +31,6 @@ export const Navbar: React.FC = () => {
     }
   };
 
-  // Quick 1-click toggle between Farmer & Transporter or General Citizen
   const handleQuickRoleToggle = () => {
     if (user?.citizenRole === 'FARMER') {
       handleRoleChange('TRANSPORTER');
@@ -50,51 +49,57 @@ export const Navbar: React.FC = () => {
     return '/citizen';
   };
 
+  const isActive = (path: string) => location.pathname === path;
+
   return (
     <>
       <header className="sticky top-0 z-[500] w-full bg-white/95 backdrop-blur-md border-b border-[#cbc4d2]/40 shadow-xs">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="w-full max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 h-16 flex items-center justify-between gap-2 lg:gap-4">
           
           {/* ================================================================= */}
-          {/* LEFT: BRAND LOGO + TITLE + ROLE SWITCHER                         */}
+          {/* 1. BRAND SECTION + ROLE SWITCHER                                  */}
           {/* ================================================================= */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link to={getPortalHomeLink()} className="flex items-center gap-2 group shrink-0">
               <img
                 src={LOGO_URL}
                 alt="Kopargaon Connect Logo"
-                className="w-9 h-9 sm:w-10 sm:h-10 object-contain drop-shadow-xs transition-transform group-hover:scale-105 shrink-0"
+                className="w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow-xs transition-transform group-hover:scale-105 shrink-0"
               />
               <div className="flex flex-col min-w-0">
-                <span className="font-extrabold text-sm sm:text-base md:text-lg text-[#1d1b20] tracking-tight whitespace-nowrap">
+                <span className="font-extrabold text-sm sm:text-base text-[#1d1b20] tracking-tight whitespace-nowrap">
                   KOPARGAON <span className={isOfficial ? 'text-[#765b00]' : 'text-[#4f378a]'}>CONNECT</span>
                 </span>
-                <span className="text-[9px] uppercase font-semibold tracking-wider text-[#494551] hidden sm:block whitespace-nowrap">
+                <span className="text-[8.5px] uppercase font-semibold tracking-wider text-[#494551] hidden 2xl:block whitespace-nowrap">
                   Smart Mobility & Rural Logistics
                 </span>
               </div>
             </Link>
 
-            {/* Role Switcher Pill in Header */}
+            {/* Role Switcher Pill (Desktop) */}
             {isAuthenticated && (
               <div className="relative shrink-0 hidden md:block">
                 {!isOfficial ? (
-                  <div className="flex items-center gap-1">
+                  <div className="relative">
                     <button
                       type="button"
                       onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-                      className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-[#e1d4fd] text-[#4f378a] hover:bg-[#cfbcff] active:scale-95 transition-all border border-[#4f378a]/20 shadow-2xs cursor-pointer"
-                      title="Click to Switch Citizen Role"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#e1d4fd] text-[#4f378a] hover:bg-[#cfbcff] active:scale-95 transition-all border border-[#4f378a]/20 shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
+                      title="Switch Role"
                     >
-                      <span className="material-symbols-outlined text-[16px]">
+                      <span className="material-symbols-outlined text-[15px]">
                         {user?.citizenRole === 'FARMER' ? 'agriculture' :
                          user?.citizenRole === 'TRANSPORTER' ? 'local_shipping' : 'person'}
                       </span>
-                      <span>
+                      <span className="hidden xl:inline">
                         {user?.citizenRole === 'FARMER' ? 'Farmer / Sender' :
                          user?.citizenRole === 'TRANSPORTER' ? 'Transporter' : 'General Citizen'}
                       </span>
-                      <span className="material-symbols-outlined text-[16px] text-[#4f378a]">swap_horiz</span>
+                      <span className="xl:hidden">
+                        {user?.citizenRole === 'FARMER' ? 'Farmer' :
+                         user?.citizenRole === 'TRANSPORTER' ? 'Transporter' : 'Citizen'}
+                      </span>
+                      <span className="material-symbols-outlined text-[15px] text-[#4f378a]">swap_horiz</span>
                     </button>
 
                     {/* Dropdown Menu */}
@@ -106,7 +111,7 @@ export const Navbar: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleRoleChange('FARMER')}
-                          className={`w-full text-left px-3 py-2.5 text-xs flex items-center gap-2 hover:bg-[#f2ecf4] transition-colors ${
+                          className={`w-full text-left px-3 py-2.5 text-xs flex items-center gap-2 hover:bg-[#f2ecf4] transition-colors cursor-pointer ${
                             user?.citizenRole === 'FARMER' ? 'font-bold text-[#4f378a] bg-[#e1d4fd]/30' : 'text-gray-700'
                           }`}
                         >
@@ -119,7 +124,7 @@ export const Navbar: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleRoleChange('TRANSPORTER')}
-                          className={`w-full text-left px-3 py-2.5 text-xs flex items-center gap-2 hover:bg-[#f2ecf4] transition-colors ${
+                          className={`w-full text-left px-3 py-2.5 text-xs flex items-center gap-2 hover:bg-[#f2ecf4] transition-colors cursor-pointer ${
                             user?.citizenRole === 'TRANSPORTER' ? 'font-bold text-[#4f378a] bg-[#e1d4fd]/30' : 'text-gray-700'
                           }`}
                         >
@@ -132,7 +137,7 @@ export const Navbar: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleRoleChange('GENERAL_CITIZEN')}
-                          className={`w-full text-left px-3 py-2.5 text-xs flex items-center gap-2 hover:bg-[#f2ecf4] transition-colors ${
+                          className={`w-full text-left px-3 py-2.5 text-xs flex items-center gap-2 hover:bg-[#f2ecf4] transition-colors cursor-pointer ${
                             user?.citizenRole === 'GENERAL_CITIZEN' ? 'font-bold text-[#4f378a] bg-[#e1d4fd]/30' : 'text-gray-700'
                           }`}
                         >
@@ -146,9 +151,9 @@ export const Navbar: React.FC = () => {
                     )}
                   </div>
                 ) : (
-                  <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#FFD814]/30 text-[#765b00] border border-[#765b00]/30 shrink-0">
-                    <span className="material-symbols-outlined text-[16px]">admin_panel_settings</span>
-                    <span>Official: {user?.officialRole || 'Admin'}</span>
+                  <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#FFD814]/30 text-[#765b00] border border-[#765b00]/30 shrink-0 whitespace-nowrap">
+                    <span className="material-symbols-outlined text-[15px]">admin_panel_settings</span>
+                    <span>Official: {user?.officialRole === 'ADMIN' ? 'Admin' : user?.officialRole === 'DEPOT_MANAGER' ? 'Depot Head' : 'Traffic Safety'}</span>
                   </span>
                 )}
               </div>
@@ -156,160 +161,220 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* ================================================================= */}
-          {/* MIDDLE: DESKTOP NAVIGATION LINKS                                 */}
+          {/* 2. NAVIGATION CONTAINER (CENTER)                                 */}
           {/* ================================================================= */}
-          <nav className="hidden xl:flex items-center gap-1 min-w-0">
-            {!isOfficial ? (
-              <>
-                <Link
-                  to={getPortalHomeLink()}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                    location.pathname === getPortalHomeLink()
-                      ? 'text-[#4f378a] bg-[#e1d4fd]/50 font-bold'
-                      : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
-                  }`}
-                >
-                  Home
-                </Link>
-                <Link
-                  to="/citizen/journey"
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                    location.pathname === '/citizen/journey'
-                      ? 'text-[#4f378a] bg-[#e1d4fd]/50 font-bold'
-                      : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
-                  }`}
-                >
-                  Plan Journey
-                </Link>
-                <Link
-                  to="/citizen/bus-schedules"
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                    location.pathname === '/citizen/bus-schedules'
-                      ? 'text-[#4f378a] bg-[#e1d4fd]/50 font-bold'
-                      : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
-                  }`}
-                >
-                  Bus Schedules
-                </Link>
-                <Link
-                  to="/citizen/map"
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                    location.pathname === '/citizen/map'
-                      ? 'text-[#4f378a] bg-[#e1d4fd]/50 font-bold'
-                      : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
-                  }`}
-                >
-                  Live Map
-                </Link>
-                {user?.citizenRole === 'FARMER' && (
-                  <>
-                    <Link
-                      to="/citizen/farmer/send-goods"
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#4f378a] bg-[#e1d4fd] hover:bg-[#cfbcff] transition-all flex items-center gap-1 whitespace-nowrap"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">local_shipping</span>
-                      Send Goods
-                    </Link>
-                    <Link
-                      to="/citizen/farmer/shipments"
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                        location.pathname === '/citizen/farmer/shipments'
-                          ? 'text-[#4f378a] bg-[#e1d4fd]/50 font-bold'
-                          : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
-                      }`}
-                    >
-                      My Shipments
-                    </Link>
-                  </>
-                )}
-                {user?.citizenRole === 'TRANSPORTER' && (
-                  <>
-                    <Link
-                      to="/citizen/transporter/publish-trip"
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#4f378a] bg-[#e1d4fd] hover:bg-[#cfbcff] transition-all flex items-center gap-1 whitespace-nowrap"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">add_circle</span>
-                      Publish Trip
-                    </Link>
-                    <Link
-                      to="/citizen/transporter/requests"
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                        location.pathname === '/citizen/transporter/requests'
-                          ? 'text-[#4f378a] bg-[#e1d4fd]/50 font-bold'
-                          : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
-                      }`}
-                    >
-                      Requests
-                    </Link>
-                  </>
-                )}
-                <Link
-                  to="/citizen/report-traffic"
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                    location.pathname === '/citizen/report-traffic'
-                      ? 'text-[#4f378a] bg-[#e1d4fd]/50 font-bold'
-                      : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
-                  }`}
-                >
-                  Report Traffic
-                </Link>
-                <Link
-                  to="/citizen/ev-stations"
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                    location.pathname === '/citizen/ev-stations'
-                      ? 'text-[#4f378a] bg-[#e1d4fd]/50 font-bold'
-                      : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
-                  }`}
-                >
-                  EV Stations
-                </Link>
-              </>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <Link
-                  to="/official"
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-[#765b00] bg-[#FFD814]/20 hover:bg-[#FFD814]/40 transition-colors flex items-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-[16px]">dashboard</span>
-                  Command Overview
-                </Link>
-                <Link
-                  to="/official/map"
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
-                >
-                  Live Fleet Map
-                </Link>
-                <Link
-                  to="/official/depot"
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
-                >
-                  Depot
-                </Link>
-                <Link
-                  to="/official/traffic-safety"
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
-                >
-                  Traffic Reports
-                </Link>
-              </div>
-            )}
+          <nav className="hidden lg:flex flex-1 min-w-0 items-center justify-center px-1 lg:px-2 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1 xl:gap-1.5 shrink-0 py-1">
+              {!isOfficial ? (
+                <>
+                  <Link
+                    to={getPortalHomeLink()}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive(getPortalHomeLink())
+                        ? 'text-[#4f378a] bg-[#e1d4fd]/60 font-bold shadow-2xs'
+                        : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
+                    }`}
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    to="/citizen/journey"
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive('/citizen/journey')
+                        ? 'text-[#4f378a] bg-[#e1d4fd]/60 font-bold shadow-2xs'
+                        : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
+                    }`}
+                  >
+                    Plan Journey
+                  </Link>
+                  <Link
+                    to="/citizen/bus-schedules"
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive('/citizen/bus-schedules')
+                        ? 'text-[#4f378a] bg-[#e1d4fd]/60 font-bold shadow-2xs'
+                        : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
+                    }`}
+                  >
+                    Bus Schedules
+                  </Link>
+                  <Link
+                    to="/citizen/map"
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive('/citizen/map')
+                        ? 'text-[#4f378a] bg-[#e1d4fd]/60 font-bold shadow-2xs'
+                        : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
+                    }`}
+                  >
+                    Live Map
+                  </Link>
+
+                  {/* Role Specific Actions */}
+                  {user?.citizenRole === 'FARMER' && (
+                    <>
+                      <Link
+                        to="/citizen/farmer/send-goods"
+                        className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap shrink-0 ${
+                          isActive('/citizen/farmer/send-goods')
+                            ? 'text-white bg-emerald-700 shadow-2xs'
+                            : 'text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200/80'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[15px]">local_shipping</span>
+                        <span>Send Goods</span>
+                      </Link>
+                      <Link
+                        to="/citizen/farmer/shipments"
+                        className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                          isActive('/citizen/farmer/shipments')
+                            ? 'text-[#4f378a] bg-[#e1d4fd]/60 font-bold shadow-2xs'
+                            : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
+                        }`}
+                      >
+                        My Shipments
+                      </Link>
+                    </>
+                  )}
+
+                  {user?.citizenRole === 'TRANSPORTER' && (
+                    <>
+                      <Link
+                        to="/citizen/transporter/publish-trip"
+                        className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap shrink-0 ${
+                          isActive('/citizen/transporter/publish-trip')
+                            ? 'text-white bg-purple-700 shadow-2xs'
+                            : 'text-purple-900 bg-purple-100/80 hover:bg-purple-200/80'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[15px]">add_circle</span>
+                        <span>Publish Trip</span>
+                      </Link>
+                      <Link
+                        to="/citizen/transporter/requests"
+                        className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                          isActive('/citizen/transporter/requests')
+                            ? 'text-[#4f378a] bg-[#e1d4fd]/60 font-bold shadow-2xs'
+                            : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
+                        }`}
+                      >
+                        Requests
+                      </Link>
+                    </>
+                  )}
+
+                  <Link
+                    to="/citizen/report-traffic"
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive('/citizen/report-traffic')
+                        ? 'text-[#4f378a] bg-[#e1d4fd]/60 font-bold shadow-2xs'
+                        : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
+                    }`}
+                  >
+                    Report Traffic
+                  </Link>
+                  <Link
+                    to="/citizen/safety"
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive('/citizen/safety')
+                        ? 'text-[#4f378a] bg-[#e1d4fd]/60 font-bold shadow-2xs'
+                        : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
+                    }`}
+                  >
+                    Safety & Alerts
+                  </Link>
+                  <Link
+                    to="/citizen/ev-stations"
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive('/citizen/ev-stations')
+                        ? 'text-[#4f378a] bg-[#e1d4fd]/60 font-bold shadow-2xs'
+                        : 'text-[#494551] hover:text-[#1d1b20] hover:bg-[#f2ecf4]'
+                    }`}
+                  >
+                    EV Stations
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/official"
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap shrink-0 ${
+                      isActive('/official')
+                        ? 'text-white bg-[#765b00] shadow-2xs'
+                        : 'text-[#765b00] bg-[#FFD814]/20 hover:bg-[#FFD814]/40'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[15px]">dashboard</span>
+                    <span>Overview</span>
+                  </Link>
+                  <Link
+                    to="/official/map"
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive('/official/map')
+                        ? 'text-[#765b00] bg-[#FFD814]/30 font-bold shadow-2xs'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Live Fleet Map
+                  </Link>
+                  <Link
+                    to="/official/depot"
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive('/official/depot')
+                        ? 'text-[#765b00] bg-[#FFD814]/30 font-bold shadow-2xs'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Depot
+                  </Link>
+                  <Link
+                    to="/official/schedules"
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive('/official/schedules')
+                        ? 'text-[#765b00] bg-[#FFD814]/30 font-bold shadow-2xs'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Schedules
+                  </Link>
+                  <Link
+                    to="/official/fleet"
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive('/official/fleet')
+                        ? 'text-[#765b00] bg-[#FFD814]/30 font-bold shadow-2xs'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Fleet
+                  </Link>
+                  <Link
+                    to="/official/traffic-safety"
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                      isActive('/official/traffic-safety')
+                        ? 'text-[#765b00] bg-[#FFD814]/30 font-bold shadow-2xs'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Traffic & Safety
+                  </Link>
+                </>
+              )}
+            </div>
           </nav>
 
           {/* ================================================================= */}
-          {/* RIGHT: NOTIFICATIONS + USER AVATAR + LOGOUT + HAMBURGER           */}
+          {/* 3. USER SECTION (RIGHT)                                           */}
           {/* ================================================================= */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Notification Bell */}
             <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setIsNotifOpen(true)}
-                className="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 hover:text-black transition-colors flex items-center justify-center"
+                className="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 hover:text-black transition-colors flex items-center justify-center cursor-pointer shrink-0"
                 title="Notifications"
               >
-                <span className="material-symbols-outlined text-[22px]">notifications</span>
+                <span className="material-symbols-outlined text-[21px]">notifications</span>
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-600 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow-xs ring-2 ring-white animate-pulse">
+                  <span className="absolute top-0 right-0 min-w-[16px] h-[16px] px-0.5 bg-red-600 text-white rounded-full text-[9px] font-black flex items-center justify-center shadow-xs ring-2 ring-white pointer-events-none animate-pulse">
                     {unreadCount}
                   </span>
                 )}
@@ -317,24 +382,24 @@ export const Navbar: React.FC = () => {
             </div>
 
             {isAuthenticated ? (
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 {/* Profile Pill */}
                 <Link
-                  to={isOfficial ? "/official/settings" : "/citizen/profile"}
-                  className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 transition-colors shrink-0"
+                  to={isOfficial ? "/official/profile" : "/citizen/profile"}
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 transition-colors shrink-0"
                   title="Profile & Settings"
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs ${
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs ${
                     isOfficial ? 'bg-[#765b00]' : 'bg-[#4f378a]'
                   }`}>
-                    {user?.name ? user.name[0].toUpperCase() : 'U'}
+                    {user?.name ? user.name[0].toUpperCase() : (isOfficial ? 'A' : 'U')}
                   </div>
-                  <div className="text-left hidden lg:block">
-                    <div className="text-xs font-bold text-[#1d1b20] leading-none max-w-[110px] truncate">
-                      {user?.name}
+                  <div className="text-left hidden 2xl:block">
+                    <div className="text-xs font-bold text-[#1d1b20] leading-none max-w-[100px] truncate">
+                      {user?.name || (isOfficial ? 'Official' : 'Citizen')}
                     </div>
-                    <div className="text-[10px] text-gray-500 mt-0.5 leading-none">
-                      {isOfficial ? user?.officialRole : (user?.citizenRole === 'FARMER' ? 'Farmer' : user?.citizenRole === 'TRANSPORTER' ? 'Transporter' : 'Citizen')}
+                    <div className="text-[9.5px] text-gray-500 mt-0.5 leading-none">
+                      {isOfficial ? (user?.officialRole === 'ADMIN' ? 'Admin' : user?.officialRole) : (user?.citizenRole === 'FARMER' ? 'Farmer' : user?.citizenRole === 'TRANSPORTER' ? 'Transporter' : 'Citizen')}
                     </div>
                   </div>
                 </Link>
@@ -346,10 +411,10 @@ export const Navbar: React.FC = () => {
                     logout();
                     navigate('/');
                   }}
-                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors flex items-center justify-center shrink-0"
+                  className="p-1.5 sm:p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors flex items-center justify-center shrink-0 cursor-pointer"
                   title="Logout"
                 >
-                  <span className="material-symbols-outlined text-[20px]">logout</span>
+                  <span className="material-symbols-outlined text-[19px]">logout</span>
                 </button>
               </div>
             ) : (
@@ -369,14 +434,14 @@ export const Navbar: React.FC = () => {
               </div>
             )}
 
-            {/* Mobile Hamburger Button */}
+            {/* Mobile / Tablet Hamburger Button */}
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="xl:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-xl shrink-0 flex items-center justify-center"
+              className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-xl shrink-0 flex items-center justify-center cursor-pointer"
               title="Toggle Menu"
             >
-              <span className="material-symbols-outlined text-[24px]">
+              <span className="material-symbols-outlined text-[23px]">
                 {isMobileMenuOpen ? 'close' : 'menu'}
               </span>
             </button>
@@ -387,18 +452,18 @@ export const Navbar: React.FC = () => {
         {/* MOBILE SLIDE-DOWN NAVIGATION DRAWER                                */}
         {/* =================================================================== */}
         {isMobileMenuOpen && (
-          <div className="xl:hidden bg-white border-b border-[#cbc4d2] px-4 pt-2 pb-6 space-y-3 animate-in slide-in-from-top duration-200">
+          <div className="lg:hidden bg-white border-b border-[#cbc4d2] px-4 pt-2 pb-6 space-y-3 animate-in slide-in-from-top duration-200">
             {isAuthenticated && (
               <div className="p-3 bg-[#fdf7ff] rounded-2xl border border-[#e1d4fd] flex items-center justify-between">
                 <div>
                   <div className="font-bold text-sm text-[#1d1b20]">{user?.name}</div>
-                  <div className="text-xs text-gray-500">{isOfficial ? user?.department : user?.email}</div>
+                  <div className="text-xs text-gray-500">{isOfficial ? (user?.department || 'Municipal Administration') : (user?.email || 'Citizen')}</div>
                 </div>
                 {!isOfficial && (
                   <button
                     type="button"
                     onClick={handleQuickRoleToggle}
-                    className="text-xs bg-[#e1d4fd] text-[#4f378a] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 active:scale-95 shadow-2xs"
+                    className="text-xs bg-[#e1d4fd] text-[#4f378a] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 active:scale-95 shadow-2xs cursor-pointer"
                   >
                     <span>{user?.citizenRole === 'FARMER' ? '🌾 Farmer' : user?.citizenRole === 'TRANSPORTER' ? '🚛 Transporter' : '👤 Citizen'}</span>
                     <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
@@ -415,7 +480,7 @@ export const Navbar: React.FC = () => {
                   className="p-2.5 rounded-xl bg-gray-50 hover:bg-[#e1d4fd]/30 font-semibold flex items-center gap-2 text-gray-800"
                 >
                   <span className="material-symbols-outlined text-[18px] text-[#4f378a]">home</span>
-                  Home Portal
+                  Home
                 </Link>
                 <Link
                   to="/citizen/journey"
@@ -466,6 +531,14 @@ export const Navbar: React.FC = () => {
                   Publish Trip
                 </Link>
                 <Link
+                  to="/citizen/transporter/requests"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-2.5 rounded-xl bg-gray-50 hover:bg-[#e1d4fd]/30 font-semibold flex items-center gap-2 text-gray-800"
+                >
+                  <span className="material-symbols-outlined text-[18px] text-[#4f378a]">task</span>
+                  Trip Requests
+                </Link>
+                <Link
                   to="/citizen/report-traffic"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="p-2.5 rounded-xl bg-gray-50 hover:bg-[#e1d4fd]/30 font-semibold flex items-center gap-2 text-gray-800"
@@ -484,7 +557,7 @@ export const Navbar: React.FC = () => {
                 <Link
                   to="/citizen/ev-stations"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2.5 rounded-xl bg-gray-50 hover:bg-[#e1d4fd]/30 font-semibold flex items-center gap-2 text-gray-800"
+                  className="p-2.5 rounded-xl bg-gray-50 hover:bg-[#e1d4fd]/30 font-semibold flex items-center gap-2 text-gray-800 col-span-2"
                 >
                   <span className="material-symbols-outlined text-[18px] text-emerald-600">ev_station</span>
                   EV Stations
