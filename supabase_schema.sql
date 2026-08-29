@@ -36,7 +36,7 @@ ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" 
 ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- 2. Traffic Reports Table
+-- 2. Traffic & Mobility Reports Table with Verification Lifecycle
 CREATE TABLE IF NOT EXISTS public.traffic_reports (
   id BIGSERIAL PRIMARY KEY,
   reporter_name TEXT NOT NULL,
@@ -47,14 +47,59 @@ CREATE TABLE IF NOT EXISTS public.traffic_reports (
   congestion_level TEXT NOT NULL CHECK (congestion_level IN ('YELLOW', 'ORANGE', 'RED')),
   description TEXT,
   photo_url TEXT,
-  status TEXT DEFAULT 'REPORTED' CHECK (status IN ('REPORTED', 'ACKNOWLEDGED', 'CLEARED')),
+  status TEXT DEFAULT 'REPORTED' CHECK (status IN ('REPORTED', 'ACKNOWLEDGED', 'ALERT_ISSUED', 'RESOLVED', 'CLEARED')),
+  verification_status TEXT DEFAULT 'UNDER_REVIEW' CHECK (verification_status IN ('VERIFIED', 'UNDER_REVIEW', 'UNVERIFIED', 'REJECTED', 'OUTDATED')),
+  verified_by TEXT,
+  verified_at TIMESTAMPTZ,
+  verification_notes TEXT,
+  duplicate_count INT DEFAULT 1,
+  related_report_id BIGINT,
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Schema Migration support for existing traffic_reports instances
+ALTER TABLE public.traffic_reports ADD COLUMN IF NOT EXISTS verification_status TEXT DEFAULT 'UNDER_REVIEW';
+ALTER TABLE public.traffic_reports ADD COLUMN IF NOT EXISTS verified_by TEXT;
+ALTER TABLE public.traffic_reports ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;
+ALTER TABLE public.traffic_reports ADD COLUMN IF NOT EXISTS verification_notes TEXT;
+ALTER TABLE public.traffic_reports ADD COLUMN IF NOT EXISTS duplicate_count INT DEFAULT 1;
+ALTER TABLE public.traffic_reports ADD COLUMN IF NOT EXISTS related_report_id BIGINT;
+
 ALTER TABLE public.traffic_reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Traffic reports viewable by everyone" ON public.traffic_reports;
 CREATE POLICY "Traffic reports viewable by everyone" ON public.traffic_reports FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Anyone can submit a traffic report" ON public.traffic_reports;
 CREATE POLICY "Anyone can submit a traffic report" ON public.traffic_reports FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Officials can update traffic reports" ON public.traffic_reports;
 CREATE POLICY "Officials can update traffic reports" ON public.traffic_reports FOR UPDATE USING (true);
+
+-- 2.1 Unified Mobility Reports Table
+CREATE TABLE IF NOT EXISTS public.mobility_reports (
+  id BIGSERIAL PRIMARY KEY,
+  reporter_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  report_type TEXT NOT NULL CHECK (report_type IN ('TRAFFIC', 'ROAD_INCIDENT', 'BUS_DISRUPTION', 'EV_STATION', 'LOGISTICS')),
+  title TEXT NOT NULL,
+  description TEXT,
+  location_name TEXT NOT NULL,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  image_url TEXT,
+  status TEXT DEFAULT 'UNDER_REVIEW' CHECK (status IN ('VERIFIED', 'UNDER_REVIEW', 'UNVERIFIED', 'REJECTED', 'OUTDATED')),
+  verified_by TEXT,
+  verified_at TIMESTAMPTZ,
+  duplicate_count INT DEFAULT 1,
+  related_report_id BIGINT REFERENCES public.mobility_reports(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.mobility_reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Mobility reports viewable by everyone" ON public.mobility_reports;
+CREATE POLICY "Mobility reports viewable by everyone" ON public.mobility_reports FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Citizens can create reports" ON public.mobility_reports;
+CREATE POLICY "Citizens can create reports" ON public.mobility_reports FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Officials can update mobility reports" ON public.mobility_reports;
+CREATE POLICY "Officials can update mobility reports" ON public.mobility_reports FOR UPDATE USING (true);
 
 -- 3. Shipments Table (Farmer & Rural Logistics)
 CREATE TABLE IF NOT EXISTS public.shipments (

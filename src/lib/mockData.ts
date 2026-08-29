@@ -144,6 +144,8 @@ export interface ShipmentRequest {
   createdAt: string;
 }
 
+export type VerificationStatus = 'VERIFIED' | 'UNDER_REVIEW' | 'UNVERIFIED' | 'REJECTED' | 'OUTDATED';
+
 export interface TrafficReport {
   id: string;
   userId: string;
@@ -156,6 +158,13 @@ export interface TrafficReport {
   timestamp: string;
   severity: 'LOW' | 'MODERATE' | 'HEAVY' | 'SEVERE';
   status: 'REPORTED' | 'ACKNOWLEDGED' | 'ALERT_ISSUED' | 'RESOLVED';
+  verificationStatus: VerificationStatus;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  verificationNotes?: string;
+  duplicateCount?: number;
+  relatedReportId?: string;
+  reportType?: 'TRAFFIC' | 'ROAD_INCIDENT' | 'BUS_DISRUPTION' | 'EV_STATION' | 'LOGISTICS';
 }
 
 export interface TrafficRegion {
@@ -719,7 +728,12 @@ export const initialTrafficReports: TrafficReport[] = [
     photoUrl: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=600&q=80',
     timestamp: '2026-08-29 08:30 AM',
     severity: 'HEAVY',
-    status: 'ACKNOWLEDGED'
+    status: 'ACKNOWLEDGED',
+    verificationStatus: 'VERIFIED',
+    verifiedBy: 'Municipal Police Dispatch',
+    verifiedAt: '2026-08-29 08:35 AM',
+    duplicateCount: 2,
+    reportType: 'TRAFFIC'
   },
   {
     id: 'traf-2',
@@ -732,7 +746,13 @@ export const initialTrafficReports: TrafficReport[] = [
     photoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
     timestamp: '2026-08-29 08:45 AM',
     severity: 'HEAVY',
-    status: 'ALERT_ISSUED'
+    status: 'ALERT_ISSUED',
+    verificationStatus: 'VERIFIED',
+    verifiedBy: 'Traffic Command HQ',
+    verifiedAt: '2026-08-29 08:50 AM',
+    duplicateCount: 2,
+    relatedReportId: 'traf-1',
+    reportType: 'ROAD_INCIDENT'
   },
   {
     id: 'traf-3',
@@ -745,7 +765,10 @@ export const initialTrafficReports: TrafficReport[] = [
     photoUrl: 'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?auto=format&fit=crop&w=600&q=80',
     timestamp: '2026-08-29 07:15 AM',
     severity: 'MODERATE',
-    status: 'REPORTED'
+    status: 'REPORTED',
+    verificationStatus: 'UNDER_REVIEW',
+    duplicateCount: 1,
+    reportType: 'ROAD_INCIDENT'
   }
 ];
 

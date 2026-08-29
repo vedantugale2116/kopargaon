@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { Navbar } from '../../components/common/Navbar';
 import { Footer } from '../../components/common/Footer';
+import { VerificationBadge } from '../../components/common/VerificationBadge';
 
 export const ReportTraffic: React.FC = () => {
   const { user } = useAuth();
@@ -271,12 +272,13 @@ export const ReportTraffic: React.FC = () => {
 
             {/* Recent Citizen Reports with Photo Thumbnails */}
             <div className="bg-white rounded-2xl p-5 border border-[#cbc4d2]/40 shadow-xs">
-              <h3 className="font-bold text-xs text-[#1d1b20] uppercase tracking-wider mb-3">
-                Recent Citizen Reports
+              <h3 className="font-bold text-xs text-[#1d1b20] uppercase tracking-wider mb-3 flex items-center justify-between">
+                <span>Recent Community Reports</span>
+                <span className="text-[10px] text-gray-400 font-normal">Live Feed</span>
               </h3>
               <div className="space-y-3">
-                {trafficReports.slice(0, 3).map((rep) => (
-                  <div key={rep.id} className="p-2.5 bg-[#fdf7ff] rounded-xl border border-gray-200 flex gap-2.5 items-start">
+                {trafficReports.slice(0, 4).map((rep) => (
+                  <div key={rep.id} className="p-3 bg-[#fdf7ff] rounded-xl border border-gray-200 flex gap-3 items-start">
                     <img src={rep.photoUrl} alt="Report" className="w-12 h-12 object-cover rounded-lg shrink-0 border border-gray-200" />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center">
@@ -284,13 +286,13 @@ export const ReportTraffic: React.FC = () => {
                         <span className="text-[10px] text-gray-400">{rep.timestamp}</span>
                       </div>
                       <p className="text-[11px] text-gray-600 truncate mt-0.5">{rep.description}</p>
-                      <span className={`inline-block mt-1 text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
-                        rep.severity === 'SEVERE' ? 'bg-red-100 text-red-800' :
-                        rep.severity === 'HEAVY' ? 'bg-orange-100 text-orange-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {rep.severity} • {rep.status}
-                      </span>
+                      <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        <VerificationBadge
+                          status={rep.verificationStatus || 'UNDER_REVIEW'}
+                          duplicateCount={rep.duplicateCount}
+                          size="xs"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

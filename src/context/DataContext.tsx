@@ -72,8 +72,12 @@ interface DataContextType {
     locationDescription: string;
     description: string;
     photoUrl?: string;
+    reportType?: 'TRAFFIC' | 'ROAD_INCIDENT' | 'BUS_DISRUPTION' | 'EV_STATION' | 'LOGISTICS';
   }) => void;
   acknowledgeTrafficReport: (id: string) => void;
+  verifyReport: (id: string, verifiedBy?: string, notes?: string) => void;
+  rejectReport: (id: string, reason?: string) => void;
+  markReportOutdated: (id: string) => void;
   issueAlertFromTraffic: (reportId: string, alertTitle: string, alertDesc: string) => void;
   resolveTrafficReport: (id: string) => void;
   createSafetyAlert: (alert: Omit<SafetyAlert, 'id' | 'timestamp' | 'active'>) => void;
@@ -144,7 +148,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           photoUrl: r.photo_url || '',
           timestamp: new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           severity: r.congestion_level === 'RED' ? 'SEVERE' : r.congestion_level === 'ORANGE' ? 'HEAVY' : r.congestion_level === 'YELLOW' ? 'MODERATE' : 'LOW',
-          status: (r.status === 'CLEARED' ? 'RESOLVED' : r.status) || 'REPORTED'
+          status: (r.status === 'CLEARED' ? 'RESOLVED' : r.status) || 'REPORTED',
+          verificationStatus: (r.verification_status as any) || 'UNDER_REVIEW',
+          verifiedBy: r.verified_by,
+          verifiedAt: r.verified_at ? new Date(r.verified_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+          duplicateCount: r.duplicate_count || 1
         }));
         setTrafficReports(prev => {
           const ids = new Set(prev.map(p => p.id));
@@ -193,7 +201,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             photoUrl: r.photo_url || '',
             timestamp: new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             severity: r.congestion_level === 'RED' ? 'SEVERE' : r.congestion_level === 'ORANGE' ? 'HEAVY' : r.congestion_level === 'YELLOW' ? 'MODERATE' : 'LOW',
-            status: (r.status === 'CLEARED' ? 'RESOLVED' : r.status) || 'REPORTED'
+            status: (r.status === 'CLEARED' ? 'RESOLVED' : r.status) || 'REPORTED',
+            verificationStatus: (r.verification_status as any) || 'UNDER_REVIEW',
+            verifiedBy: r.verified_by,
+            verifiedAt: r.verified_at ? new Date(r.verified_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+            duplicateCount: r.duplicate_count || 1
           };
           setTrafficReports(prev => [newRep, ...prev.filter(x => x.id !== newRep.id)]);
         }
@@ -596,6 +608,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     locationDescription: string;
     description: string;
     photoUrl?: string;
+    reportType?: 'TRAFFIC' | 'ROAD_INCIDENT' | 'BUS_DISRUPTION' | 'EV_STATION' | 'LOGISTICS';
   }) => {
     let targetRegion = trafficRegions.find(r => 
       (reportData.regionKey && r.id === reportData.regionKey) || 
@@ -606,6 +619,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!targetRegion) {
       targetRegion = trafficRegions[0];
     }
+
+    // Duplicate detection: check if there are recent reports in the same corridor
+    const existingCorridorReports = trafficReports.filter(r => 
+      r.regionKey === targetRegion!.id && r.verificationStatus !== 'REJECTED' && r.verificationStatus !== 'OUTDATED'
+    );
+    const calculatedDuplicateCount = existingCorridorReports.length + 1;
 
     const updatedReportCount = targetRegion.reportCount + 1;
     const newTrafficColor = calculateTrafficColor(updatedReportCount);
@@ -621,7 +640,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       photoUrl: reportData.photoUrl || 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=600&q=80',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       severity: newTrafficColor === 'RED' ? 'SEVERE' : newTrafficColor === 'ORANGE' ? 'HEAVY' : newTrafficColor === 'YELLOW' ? 'MODERATE' : 'LOW',
-      status: 'REPORTED'
+      status: 'REPORTED',
+      verificationStatus: 'UNDER_REVIEW',
+      duplicateCount: calculatedDuplicateCount,
+      reportType: reportData.reportType || 'TRAFFIC',
+      relatedReportId: existingCorridorReports[0]?.id
     };
 
     setTrafficReports(prev => [newReport, ...prev]);
@@ -632,7 +655,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...r,
           reportCount: updatedReportCount,
           currentTraffic: newTrafficColor,
-          statusMessage: `${updatedReportCount} citizen reports received. Road traffic condition: ${newTrafficColor}.`
+          statusMessage: `${updatedReportCount} citizen reports pending verification. Traffic level: ${newTrafficColor}.`
         };
       }
       return r;
@@ -647,14 +670,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         congestion_level: newTrafficColor,
         description: reportData.description,
         photo_url: reportData.photoUrl,
-        status: 'REPORTED'
+        status: 'REPORTED',
+        verification_status: 'UNDER_REVIEW',
+        duplicate_count: calculatedDuplicateCount
       }).then();
     }
 
     addNotification({
       targetRole: 'OFFICIAL',
-      title: `Traffic Congestion Alert: ${targetRegion.name}`,
-      message: `Citizen reported congestion: "${reportData.description}". Total reports in zone: ${updatedReportCount} (${newTrafficColor} level).`,
+      title: `Citizen Traffic Report Under Review: ${targetRegion.name}`,
+      message: `Citizen reported: "${reportData.description}". Total reports in zone: ${updatedReportCount}. Verification required.`,
       category: 'TRAFFIC'
     });
   };
@@ -664,6 +689,70 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (supabase && isSupabaseConfigured) {
       supabase.from('traffic_reports').update({ status: 'ACKNOWLEDGED' }).eq('id', id).then();
+    }
+  };
+
+  // Official Verification: Mark verified by authorized official
+  const verifyReport = (id: string, verifiedBy?: string, notes?: string) => {
+    const verifiedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const officialName = verifiedBy || 'Municipal Official';
+
+    setTrafficReports(prev => prev.map(r => r.id === id ? {
+      ...r,
+      verificationStatus: 'VERIFIED',
+      verifiedBy: officialName,
+      verifiedAt: verifiedTime,
+      verificationNotes: notes,
+      status: 'ACKNOWLEDGED'
+    } : r));
+
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('traffic_reports').update({
+        verification_status: 'VERIFIED',
+        verified_by: officialName,
+        verified_at: new Date().toISOString(),
+        status: 'ACKNOWLEDGED'
+      }).eq('id', id).then();
+    }
+
+    addNotification({
+      targetRole: 'ALL',
+      title: 'Traffic Incident Officially Verified',
+      message: `Municipal Dispatch verified road condition report for Kopargaon corridor.`,
+      category: 'TRAFFIC'
+    });
+  };
+
+  // Official Rejection: Dismiss inaccurate or false citizen report
+  const rejectReport = (id: string, reason?: string) => {
+    setTrafficReports(prev => prev.map(r => r.id === id ? {
+      ...r,
+      verificationStatus: 'REJECTED',
+      verificationNotes: reason || 'Dismissed upon official inspection',
+      status: 'RESOLVED'
+    } : r));
+
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('traffic_reports').update({
+        verification_status: 'REJECTED',
+        status: 'RESOLVED'
+      }).eq('id', id).then();
+    }
+  };
+
+  // Mark Report Outdated: Expired / cleared incident
+  const markReportOutdated = (id: string) => {
+    setTrafficReports(prev => prev.map(r => r.id === id ? {
+      ...r,
+      verificationStatus: 'OUTDATED',
+      status: 'RESOLVED'
+    } : r));
+
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('traffic_reports').update({
+        verification_status: 'OUTDATED',
+        status: 'RESOLVED'
+      }).eq('id', id).then();
     }
   };
 
@@ -815,6 +904,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         rejectShipmentRequest,
         addTrafficReport,
         acknowledgeTrafficReport,
+        verifyReport,
+        rejectReport,
+        markReportOutdated,
         issueAlertFromTraffic,
         resolveTrafficReport,
         createSafetyAlert,

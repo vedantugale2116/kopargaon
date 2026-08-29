@@ -4,6 +4,7 @@ import { Navbar } from '../../components/common/Navbar';
 import { Footer } from '../../components/common/Footer';
 import { BusBookingModal } from '../../components/bus/BusBookingModal';
 import { BusSchedule } from '../../lib/mockData';
+import { VerificationBadge } from '../../components/common/VerificationBadge';
 
 export const BusSchedules: React.FC = () => {
   const { schedules } = useData();
@@ -128,6 +129,7 @@ export const BusSchedules: React.FC = () => {
                     }`}>
                       {sched.status}
                     </span>
+                    <VerificationBadge status="VERIFIED" verifiedBy="MSRTC Kopargaon Depot" size="xs" />
                   </div>
 
                   <div>

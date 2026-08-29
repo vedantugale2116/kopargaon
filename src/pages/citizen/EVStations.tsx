@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { Navbar } from '../../components/common/Navbar';
 import { Footer } from '../../components/common/Footer';
+import { VerificationBadge } from '../../components/common/VerificationBadge';
 
 export const EVStations: React.FC = () => {
   const { evStations } = useData();
@@ -107,8 +108,11 @@ export const EVStations: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-extrabold text-base text-[#1d1b20]">{station.name}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">{station.address}</p>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h3 className="font-extrabold text-base text-[#1d1b20]">{station.name}</h3>
+                      <VerificationBadge status="VERIFIED" verifiedBy="MSEDCL Grid Command" size="xs" />
+                    </div>
+                    <p className="text-xs text-gray-500">{station.address}</p>
                   </div>
                   <span className="text-xs font-extrabold bg-[#e1d4fd] text-[#4f378a] px-2.5 py-1 rounded-lg">
                     {station.distanceKm} km

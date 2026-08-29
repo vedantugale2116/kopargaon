@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useData } from '../../context/DataContext';
+import { VerificationBadge } from '../common/VerificationBadge';
 
 // Fix Leaflet default icon paths in bundled environments
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -412,7 +413,11 @@ export const KopargaonMap: React.FC<KopargaonMapProps> = ({
             latestReportDescription: latestReport?.description,
             latestReportUser: latestReport?.userName,
             latestReportTime: latestReport?.timestamp,
-            locationDescription: latestReport?.locationDescription
+            locationDescription: latestReport?.locationDescription,
+            verificationStatus: latestReport?.verificationStatus || (region.reportCount > 0 ? 'UNDER_REVIEW' : 'VERIFIED'),
+            verifiedBy: latestReport?.verifiedBy,
+            verifiedAt: latestReport?.verifiedAt,
+            duplicateCount: latestReport?.duplicateCount || region.reportCount
           });
         };
 
@@ -922,7 +927,21 @@ export const KopargaonMap: React.FC<KopargaonMapProps> = ({
                 </span>
               </span>
               <div>
-                <h4 className="font-extrabold text-xs sm:text-sm text-[#1d1b20]">{selectedItemInfo.title}</h4>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h4 className="font-extrabold text-xs sm:text-sm text-[#1d1b20]">{selectedItemInfo.title}</h4>
+                  <VerificationBadge
+                    status={
+                      selectedItemInfo.type === 'BUS' ? 'VERIFIED' :
+                      selectedItemInfo.type === 'EV' ? 'VERIFIED' :
+                      selectedItemInfo.type === 'DEPOT' ? 'VERIFIED' :
+                      selectedItemInfo.type === 'ALERTS' ? 'VERIFIED' :
+                      (selectedItemInfo.verificationStatus || (selectedItemInfo.reportCount > 0 ? 'UNDER_REVIEW' : 'VERIFIED'))
+                    }
+                    verifiedBy={selectedItemInfo.verifiedBy || (selectedItemInfo.type === 'BUS' ? 'MSRTC' : selectedItemInfo.type === 'EV' ? 'MSEDCL' : undefined)}
+                    duplicateCount={selectedItemInfo.duplicateCount}
+                    size="xs"
+                  />
+                </div>
                 <span className="text-[10px] font-bold text-[#494551] uppercase tracking-wider">{selectedItemInfo.type} DETAILS</span>
               </div>
             </div>
@@ -997,7 +1016,7 @@ export const KopargaonMap: React.FC<KopargaonMapProps> = ({
 
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between py-0.5 border-b border-gray-100">
-                  <span className="text-gray-500">Verified Citizen Reports:</span>
+                  <span className="text-gray-500">Community Incident Reports:</span>
                   <span className="font-extrabold text-[#1d1b20]">{selectedItemInfo.reportCount} Reports</span>
                 </div>
                 <div className="flex justify-between py-0.5 border-b border-gray-100">

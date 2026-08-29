@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { Navbar } from '../../components/common/Navbar';
 import { Footer } from '../../components/common/Footer';
+import { VerificationBadge } from '../../components/common/VerificationBadge';
 
 export const SafetyAlerts: React.FC = () => {
   const { safetyAlerts } = useData();
@@ -85,6 +86,7 @@ export const SafetyAlerts: React.FC = () => {
                       }`}>
                         {alert.severity}
                       </span>
+                      <VerificationBadge status="VERIFIED" verifiedBy={alert.issuedBy} size="xs" />
                     </div>
 
                     <p className="text-xs text-gray-700 mt-1.5 leading-relaxed">

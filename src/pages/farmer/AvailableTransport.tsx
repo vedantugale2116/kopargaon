@@ -5,6 +5,7 @@ import { useData } from '../../context/DataContext';
 import { evaluateTransportOptions, TransportOption } from '../../lib/aiRecommender';
 import { Navbar } from '../../components/common/Navbar';
 import { Footer } from '../../components/common/Footer';
+import { VerificationBadge } from '../../components/common/VerificationBadge';
 
 export const AvailableTransport: React.FC = () => {
   const { user } = useAuth();
@@ -167,6 +168,11 @@ export const AvailableTransport: React.FC = () => {
                     <span className="text-[10px] font-extrabold bg-[#f8f2fa] text-[#4f378a] px-2.5 py-1 rounded-lg border border-[#cbc4d2]/40 ml-2">
                       {opt.badge}
                     </span>
+                    <VerificationBadge
+                      status="VERIFIED"
+                      verifiedBy={opt.type === 'PUBLIC_BUS' ? 'MSRTC Depot' : 'APMC Transporter Desk'}
+                      size="xs"
+                    />
                   </div>
 
                   <div className="text-xs text-gray-700 font-semibold flex items-center gap-2 flex-wrap">
