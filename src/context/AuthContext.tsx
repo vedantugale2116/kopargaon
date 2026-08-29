@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getStorageItem, setStorageItem } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, getStorageItem, setStorageItem } from '../lib/supabase';
 
 export type CitizenRole = 'GENERAL_CITIZEN' | 'FARMER' | 'TRANSPORTER';
 export type OfficialRole = 'ADMIN' | 'TRANSPORT_OFFICIAL' | 'DEPOT_MANAGER' | 'TRAFFIC_SAFETY_OFFICIAL';
@@ -146,6 +146,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return getStorageItem<RegisteredCitizen[]>('registeredCitizens', defaultCitizenUsers);
   });
 
+  // Sync session with Supabase on startup if configured
+  useEffect(() => {
+    const client = supabase;
+    if (!client || !isSupabaseConfigured) return;
+
+    client.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        // Fetch profile
+        client
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (profile) {
+              const u: UserProfile = {
+                id: profile.id,
+                name: profile.full_name || session.user.email?.split('@')[0] || 'Citizen',
+                email: profile.email || session.user.email || '',
+                phone: profile.phone,
+                roleType: profile.user_type === 'official' ? 'OFFICIAL' : 'CITIZEN',
+                citizenRole: profile.citizen_role?.toUpperCase(),
+                officialRole: profile.official_role?.toUpperCase(),
+                department: profile.department,
+                location: profile.location,
+                dob: profile.dob
+              };
+              setUser(u);
+            }
+          });
+      }
+    });
+
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        // Logged out
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
     setStorageItem('currentUser', user);
   }, [user]);
@@ -154,8 +198,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setStorageItem('registeredCitizens', registeredCitizens);
   }, [registeredCitizens]);
 
+  // Citizen Login (Email + Password)
   const loginCitizen = async (email: string, pass: string) => {
     const cleanEmail = email.trim().toLowerCase();
+
+    // If Supabase is active, try Supabase Auth first
+    if (supabase && isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: pass
+        });
+
+        if (error) {
+          console.warn('Supabase Auth error (falling back to demo store):', error.message);
+        } else if (data?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+
+          const u: UserProfile = {
+            id: data.user.id,
+            name: profile?.full_name || data.user.user_metadata?.full_name || cleanEmail.split('@')[0],
+            email: cleanEmail,
+            phone: profile?.phone || data.user.user_metadata?.phone,
+            roleType: 'CITIZEN',
+            citizenRole: profile?.citizen_role?.toUpperCase(),
+            location: profile?.location || 'Kopargaon',
+            dob: profile?.dob
+          };
+          setUser(u);
+          return { success: true };
+        }
+      } catch (err: any) {
+        console.warn('Supabase signin attempt exception:', err);
+      }
+    }
+
+    // Local / Demo Store Fallback
     const found = registeredCitizens.find(
       u => u.email.toLowerCase() === cleanEmail && u.password === pass
     );
@@ -176,7 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     }
 
-    // If new unregistered email is entered for quick demo, allow standard citizen login
+    // Unregistered email fallback for seamless testing
     if (email.includes('@') && pass.length >= 6) {
       const newUser: UserProfile = {
         id: `cit-${Date.now()}`,
@@ -192,6 +274,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: false, error: 'Invalid email or password. Please check your credentials.' };
   };
 
+  // Citizen Registration
   const registerCitizen = async (data: {
     fullName: string;
     email: string;
@@ -218,6 +301,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'Passwords do not match.' };
     }
 
+    // If Supabase is active, register account in Supabase
+    if (supabase && isSupabaseConfigured) {
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password: data.password,
+          options: {
+            data: {
+              full_name: data.fullName,
+              location: data.location || 'Kopargaon',
+              dob: data.dob,
+              user_type: 'citizen'
+            }
+          }
+        });
+
+        if (authError) {
+          console.warn('Supabase SignUp error:', authError.message);
+        } else if (authData?.user) {
+          // Upsert to profiles table
+          await supabase.from('profiles').upsert({
+            id: authData.user.id,
+            full_name: data.fullName,
+            email: cleanEmail,
+            user_type: 'citizen',
+            location: data.location || 'Kopargaon',
+            dob: data.dob,
+            created_at: new Date().toISOString()
+          });
+
+          const profileUser: UserProfile = {
+            id: authData.user.id,
+            name: data.fullName,
+            email: cleanEmail,
+            roleType: 'CITIZEN',
+            location: data.location || 'Kopargaon',
+            dob: data.dob
+          };
+          setUser(profileUser);
+          return { success: true };
+        }
+      } catch (err: any) {
+        console.warn('Supabase registration exception:', err);
+      }
+    }
+
+    // Local / Demo Store Fallback
     const exists = registeredCitizens.some(u => u.email.toLowerCase() === cleanEmail);
     if (exists) {
       return { success: false, error: 'An account with this email address already exists.' };
@@ -229,7 +359,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: cleanEmail,
       password: data.password,
       roleType: 'CITIZEN',
-      citizenRole: undefined, // Role selection comes next
+      citizenRole: undefined,
       location: data.location || 'Kopargaon',
       dob: data.dob
     };
@@ -247,6 +377,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  // Set Citizen Sub-Role (General Citizen / Farmer / Transporter)
   const setCitizenRole = (role: CitizenRole) => {
     if (!user) return;
     const updated: UserProfile = {
@@ -261,10 +392,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
     setUser(updated);
+
+    if (supabase && isSupabaseConfigured && user.id) {
+      supabase.from('profiles').update({
+        citizen_role: role.toLowerCase()
+      }).eq('id', user.id).then();
+    }
   };
 
+  // Official Login (Fixed Official Accounts only, No Public Registration)
   const loginOfficial = async (officialIdOrEmail: string, pass: string) => {
     const cleanInput = officialIdOrEmail.trim().toLowerCase();
+
+    // Try Supabase official auth if active
+    if (supabase && isSupabaseConfigured && cleanInput.includes('@')) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanInput,
+          password: pass
+        });
+
+        if (!error && data?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+
+          if (profile && profile.user_type === 'official') {
+            const officialUser: UserProfile = {
+              id: profile.id,
+              officialId: profile.official_id || 'ADM-01',
+              name: profile.full_name || 'Official Staff',
+              email: cleanInput,
+              roleType: 'OFFICIAL',
+              officialRole: profile.official_role?.toUpperCase() || 'ADMIN',
+              department: profile.department || 'Municipal HQ',
+              location: profile.location || 'Kopargaon'
+            };
+            setUser(officialUser);
+            return { success: true };
+          }
+        }
+      } catch (err) {
+        console.warn('Official Supabase Auth error:', err);
+      }
+    }
+
     const found = defaultOfficialAccounts.find(
       o => (o.officialId.toLowerCase() === cleanInput || o.email.toLowerCase() === cleanInput) &&
            (o.password === pass || pass === 'admin123' || pass === 'password123' || pass === 'adminpassword')
@@ -305,12 +479,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    if (supabase && isSupabaseConfigured) {
+      supabase.auth.signOut().catch(console.warn);
+    }
     setUser(null);
   };
 
   const updateProfile = (updates: Partial<UserProfile>) => {
     if (!user) return;
     setUser(prev => prev ? { ...prev, ...updates } : null);
+
+    if (supabase && isSupabaseConfigured && user.id) {
+      supabase.from('profiles').update({
+        full_name: updates.name,
+        phone: updates.phone,
+        location: updates.location
+      }).eq('id', user.id).then();
+    }
   };
 
   const isAuthenticated = user !== null;
