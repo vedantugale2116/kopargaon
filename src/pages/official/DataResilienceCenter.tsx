@@ -25,7 +25,7 @@ import { idbGetAll } from '../../lib/resilienceIndexedDB';
 export const DataResilienceCenter: React.FC = () => {
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'SIMULATION' | 'QUEUE' | 'JOURNAL' | 'SNAPSHOTS' | 'PENDING_TX' | 'AUDIT'>('SIMULATION');
+  const [activeTab, setActiveTab] = useState<'QUEUE' | 'JOURNAL' | 'SNAPSHOTS' | 'PENDING_TX' | 'AUDIT'>('QUEUE');
   const [queueFilter, setQueueFilter] = useState<'ALL' | 'SAFE_TO_RECOVER' | 'HUMAN_REVIEW_REQUIRED' | 'IRRECOVERABLE' | 'RECOVERED'>('ALL');
   
   const [queueItems, setQueueItems] = useState<RecoveryQueueItem[]>([]);
@@ -89,7 +89,7 @@ export const DataResilienceCenter: React.FC = () => {
     try {
       const result = await triggerDeterministicDisasterSimulation();
       await reloadState();
-      setActiveTab('SIMULATION');
+      setActiveTab('QUEUE');
       flashMessage(`🚨 Controlled Disaster Scenario (${result.incidentId}) initiated. Isolated test entities generated.`);
     } catch (err: any) {
       console.error(err);
@@ -351,18 +351,6 @@ export const DataResilienceCenter: React.FC = () => {
           {/* Navigation Tabs */}
           <div className="flex border-b border-[#cbc4d2]/40 gap-2 overflow-x-auto pb-1">
             <button
-              onClick={() => setActiveTab('SIMULATION')}
-              className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all flex items-center gap-1.5 ${
-                activeTab === 'SIMULATION'
-                  ? 'bg-white text-[#4f378a] border-t-2 border-x border-[#cbc4d2]/40 border-t-[#4f378a] shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">play_circle</span>
-              Hackathon Demonstration Flow
-            </button>
-
-            <button
               onClick={() => setActiveTab('QUEUE')}
               className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all flex items-center gap-1.5 ${
                 activeTab === 'QUEUE'
@@ -423,202 +411,7 @@ export const DataResilienceCenter: React.FC = () => {
             </button>
           </div>
 
-          {/* TAB 1: HACKATHON DEMONSTRATION FLOW */}
-          {activeTab === 'SIMULATION' && (
-            <div className="space-y-6">
-              {/* Core Banner */}
-              <div className="bg-gradient-to-r from-[#22005d] to-[#4f378a] text-white p-6 rounded-2xl shadow-sm space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full text-amber-300">
-                      Core Hackathon Theme
-                    </span>
-                    <h2 className="text-xl font-black mt-2">
-                      "When the Database Forgets, Kopargaon Connect Remembers What Actually Happened."
-                    </h2>
-                    <p className="text-xs text-purple-100 max-w-2xl mt-1">
-                      Deterministic disaster recovery scenario for judges: Farmer & Transporter logistics workflows emit cryptographic SHA-256 hash chains. During simulated database incidents, our resilience engine cross-references evidence from immutable event logs and versioned snapshots to guarantee 100% data integrity without halting municipal operations.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={handleSimulateDisaster}
-                    disabled={isSimulating}
-                    className="bg-amber-400 hover:bg-amber-300 text-gray-950 text-xs font-extrabold px-5 py-3 rounded-xl shadow-md flex items-center gap-2 transition-transform active:scale-95 shrink-0"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">play_arrow</span>
-                    {isSimulating ? 'Initializing Scenario...' : 'Run Simulation Flow'}
-                  </button>
-                </div>
-              </div>
-
-              {/* 3 Demonstration Steps Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Scenario 1: Safe Recovery */}
-                <div className="bg-white p-5 rounded-2xl border border-emerald-200 shadow-xs flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[11px] font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                        🟢 Scenario 1: Safe Recovery
-                      </span>
-                      <span className="text-xs font-bold text-gray-500">KPG-DEMO-001</span>
-                    </div>
-
-                    <h3 className="text-sm font-black text-[#1d1b20]">
-                      Missing Onion Freight Record
-                    </h3>
-                    <p className="text-xs text-gray-600">
-                      Simulated missing row in Supabase table. Creation event block, Transporter acceptance signature, and snapshot agree with 96% confidence.
-                    </p>
-
-                    <div className="p-2.5 bg-emerald-50/60 rounded-xl text-[11px] space-y-1 border border-emerald-100">
-                      <div className="text-emerald-900 font-bold">✓ Creation event found in journal</div>
-                      <div className="text-emerald-900 font-bold">✓ Transporter signature verified</div>
-                      <div className="text-emerald-900 font-bold">✓ Snapshot matches event stream</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                    <span className="text-xs font-extrabold text-emerald-700">96% Confidence</span>
-                    <button
-                      onClick={() => {
-                        const item = queueItems.find(q => q.entity_id === 'KPG-DEMO-001');
-                        if (item) handleRecoverRecord(item);
-                        else flashMessage('Please run "Simulate Data Incident" first.');
-                      }}
-                      className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xs"
-                    >
-                      Recover Now →
-                    </button>
-                  </div>
-                </div>
-
-                {/* Scenario 2: Conflicting State */}
-                <div className="bg-white p-5 rounded-2xl border border-amber-200 shadow-xs flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[11px] font-black text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
-                        🟡 Scenario 2: Human Review
-                      </span>
-                      <span className="text-xs font-bold text-gray-500">KPG-DEMO-002</span>
-                    </div>
-
-                    <h3 className="text-sm font-black text-[#1d1b20]">
-                      Destination Conflict (Nashik vs Pune)
-                    </h3>
-                    <p className="text-xs text-gray-600">
-                      Recovery snapshot specifies <strong>Nashik APMC</strong>, while subsequent event stream recorded rerouting to <strong>Pune Gultekdi</strong>.
-                    </p>
-
-                    <div className="p-2.5 bg-amber-50/60 rounded-xl text-[11px] space-y-1 border border-amber-100">
-                      <div className="text-amber-900 font-bold">⚠️ Snapshot: Destination = Nashik APMC</div>
-                      <div className="text-amber-900 font-bold">⚠️ Event Log: Destination = Pune Gultekdi</div>
-                      <div className="text-amber-900 font-bold">⚠️ Flagged: Human verification required</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                    <span className="text-xs font-extrabold text-amber-700">42% Confidence</span>
-                    <button
-                      onClick={() => {
-                        const item = queueItems.find(q => q.entity_id === 'KPG-DEMO-002');
-                        if (item) setSelectedConflictItem(item);
-                        else flashMessage('Please run "Simulate Data Incident" first.');
-                      }}
-                      className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xs"
-                    >
-                      Review Conflict →
-                    </button>
-                  </div>
-                </div>
-
-                {/* Scenario 3: Irrecoverable */}
-                <div className="bg-white p-5 rounded-2xl border border-red-200 shadow-xs flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[11px] font-black text-red-800 bg-red-100 px-2.5 py-0.5 rounded-full">
-                        🔴 Scenario 3: Irrecoverable
-                      </span>
-                      <span className="text-xs font-bold text-gray-500">BK-2026-CORRUPT</span>
-                    </div>
-
-                    <h3 className="text-sm font-black text-[#1d1b20]">
-                      Damaged Block & Missing Proof
-                    </h3>
-                    <p className="text-xs text-gray-600">
-                      Corrupted sector with missing cryptographic signatures and no trustworthy evidence. System strictly refuses to invent fake data.
-                    </p>
-
-                    <div className="p-2.5 bg-red-50/60 rounded-xl text-[11px] space-y-1 border border-red-100">
-                      <div className="text-red-900 font-bold">✕ No creation block in ledger</div>
-                      <div className="text-red-900 font-bold">✕ Checksum mismatch / Tampered</div>
-                      <div className="text-red-900 font-bold">✕ Audited reason recorded</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                    <span className="text-xs font-extrabold text-red-700">12% Confidence</span>
-                    <span className="text-[11px] font-bold text-red-600">Audited Unrecoverable</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Continuous Operations Interactive Panel */}
-              <div className="bg-white p-5 rounded-2xl border border-[#cbc4d2]/40 shadow-xs space-y-3">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-sm font-extrabold text-[#1d1b20] flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[#765b00]">all_inclusive</span>
-                      Continuous Operations: Test Real-Time Passenger Booking During Recovery
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Simulate a citizen booking an MSRTC bus while the database recovery process is running. Transactions are stored in persistent IndexedDB and synchronized automatically.
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleSimulateContinuousBooking}
-                      className="bg-[#765b00] hover:bg-[#5a4500] text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">add_shopping_cart</span>
-                      Simulate Citizen Booking
-                    </button>
-                    <button
-                      onClick={handleFlushPending}
-                      disabled={pendingTxCount === 0 || isSyncing}
-                      className="bg-[#4f378a] hover:bg-[#382467] text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">sync</span>
-                      Sync Queue ({pendingTxCount})
-                    </button>
-                  </div>
-                </div>
-
-                {pendingTxList.length > 0 && (
-                  <div className="space-y-2 pt-2">
-                    <div className="text-[11px] font-bold text-gray-500 uppercase">Current Pending IndexedDB Transactions:</div>
-                    {pendingTxList.map((tx) => (
-                      <div key={tx.id} className="p-3 bg-blue-50/70 rounded-xl border border-blue-200 flex justify-between items-center text-xs">
-                        <div>
-                          <span className="font-bold text-blue-950">{tx.operation_type}</span>
-                          <span className="text-blue-700 ml-2 font-mono">({tx.id})</span>
-                          <div className="text-[11px] text-blue-800 mt-0.5">
-                            Passenger Booking for {tx.payload.passengerCount} seat(s) on {tx.payload.busNumber} • Amount: ₹{tx.payload.totalAmount}
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-blue-200 text-blue-900">
-                          {tx.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: RECOVERY QUEUE */}
+          {/* TAB 1: RECOVERY QUEUE */}
           {activeTab === 'QUEUE' && (
             <div className="space-y-4">
               {/* Filter Pills */}
