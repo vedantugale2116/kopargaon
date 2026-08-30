@@ -17,6 +17,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Cargo Capacity Monitor', path: '/official/capacity', icon: 'inventory_2' },
     { label: 'Traffic & Safety Reports', path: '/official/traffic-safety', icon: 'traffic' },
     { label: 'Alert Management Center', path: '/official/alerts', icon: 'notifications_active' },
+    { label: 'Data Resilience Center', path: '/official/recovery', icon: 'shield' },
     { label: 'EV Infrastructure', path: '/official/ev-infrastructure', icon: 'ev_station' },
     { label: 'Official Profile & Settings', path: '/official/settings', icon: 'settings' },
   ];

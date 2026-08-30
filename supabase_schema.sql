@@ -288,3 +288,96 @@ ON CONFLICT (id) DO UPDATE SET
   official_role = 'traffic_safety', 
   email = 'traffic@kopargaonconnect.demo',
   updated_at = now();
+
+-- =========================================================================
+-- 9. OFFICIAL DATA RESILIENCE & DISASTER RECOVERY SCHEMA
+-- =========================================================================
+
+-- 9.1 Immutable Operation Journal (Cryptographic Hash Chained)
+CREATE TABLE IF NOT EXISTS public.recovery_operation_journal (
+  operation_id TEXT PRIMARY KEY,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  operation_type TEXT NOT NULL,
+  actor_user_id TEXT NOT NULL,
+  actor_role TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  sequence_number BIGINT NOT NULL,
+  previous_hash TEXT NOT NULL,
+  checksum TEXT NOT NULL,
+  status TEXT DEFAULT 'PROCESSED',
+  recovery_status TEXT DEFAULT 'COMMITTED',
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_journal_entity ON public.recovery_operation_journal(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_journal_seq ON public.recovery_operation_journal(sequence_number);
+
+ALTER TABLE public.recovery_operation_journal ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Journal viewable by authenticated officials" ON public.recovery_operation_journal;
+CREATE POLICY "Journal viewable by authenticated officials" ON public.recovery_operation_journal FOR SELECT USING (true);
+DROP POLICY IF EXISTS "System can insert journal operations" ON public.recovery_operation_journal;
+CREATE POLICY "System can insert journal operations" ON public.recovery_operation_journal FOR INSERT WITH CHECK (true);
+
+-- 9.2 Versioned Recovery Snapshots
+CREATE TABLE IF NOT EXISTS public.recovery_snapshots (
+  snapshot_id TEXT PRIMARY KEY,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  snapshot_data JSONB NOT NULL,
+  version INT DEFAULT 1,
+  integrity_status TEXT DEFAULT 'VALID',
+  checksum TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_entity ON public.recovery_snapshots(entity_type, entity_id);
+
+ALTER TABLE public.recovery_snapshots ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Snapshots viewable by officials" ON public.recovery_snapshots;
+CREATE POLICY "Snapshots viewable by officials" ON public.recovery_snapshots FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Snapshots can be upserted" ON public.recovery_snapshots;
+CREATE POLICY "Snapshots can be upserted" ON public.recovery_snapshots FOR ALL USING (true);
+
+-- 9.3 Recovery Incidents & Queue
+CREATE TABLE IF NOT EXISTS public.recovery_incidents (
+  id TEXT PRIMARY KEY,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  incident_type TEXT NOT NULL,
+  classification TEXT NOT NULL,
+  confidence NUMERIC NOT NULL,
+  evidence JSONB NOT NULL DEFAULT '[]'::jsonb,
+  current_state JSONB,
+  recovered_state JSONB,
+  status TEXT DEFAULT 'PENDING',
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.recovery_incidents ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Incidents viewable by officials" ON public.recovery_incidents;
+CREATE POLICY "Incidents viewable by officials" ON public.recovery_incidents FOR ALL USING (true);
+
+-- 9.4 Official Recovery Audit Trail
+CREATE TABLE IF NOT EXISTS public.recovery_audit (
+  id TEXT PRIMARY KEY,
+  official_id TEXT NOT NULL,
+  official_name TEXT NOT NULL,
+  incident_id TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  previous_state JSONB,
+  recovered_state JSONB,
+  confidence NUMERIC NOT NULL,
+  evidence_summary TEXT,
+  resolution_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.recovery_audit ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Recovery audit viewable by officials" ON public.recovery_audit;
+CREATE POLICY "Recovery audit viewable by officials" ON public.recovery_audit FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Recovery audit insertable by officials" ON public.recovery_audit;
+CREATE POLICY "Recovery audit insertable by officials" ON public.recovery_audit FOR INSERT WITH CHECK (true);
+

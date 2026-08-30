@@ -160,6 +160,37 @@ export const OperationalOverview: React.FC = () => {
             </div>
           </div>
 
+          {/* 🛡 Official Data Resilience Command Entry */}
+          <div className="bg-gradient-to-r from-[#22005d] to-[#4f378a] text-white p-5 rounded-2xl border border-purple-300/30 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-xs text-amber-300 flex items-center justify-center font-bold shrink-0 border border-white/20">
+                <span className="material-symbols-outlined text-[28px]">shield</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-extrabold text-white tracking-tight">
+                    Data Resilience Center
+                  </h3>
+                  <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-400/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Resilience Engine Active
+                  </span>
+                </div>
+                <p className="text-xs text-purple-200 mt-0.5">
+                  Monitor data integrity, incidents and recovery operations.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              to="/official/recovery"
+              className="bg-amber-400 hover:bg-amber-300 text-gray-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all shrink-0"
+            >
+              <span>View Recovery Center</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </Link>
+          </div>
+
           {/* Main Operational Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left 2 Cols: Live Map & Immediate Action Required */}

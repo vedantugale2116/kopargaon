@@ -49,6 +49,7 @@ import { TrafficSafetyManagement } from './pages/official/TrafficSafetyManagemen
 import { AlertManagementCenter } from './pages/official/AlertManagementCenter';
 import { EVInfrastructure } from './pages/official/EVInfrastructure';
 import { OfficialProfile } from './pages/official/OfficialProfile';
+import { DataResilienceCenter } from './pages/official/DataResilienceCenter';
 
 export function App() {
   return (
@@ -317,6 +318,14 @@ export function App() {
               element={
                 <ProtectedRoute allowedUserType="OFFICIAL">
                   <AlertManagementCenter />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/official/recovery"
+              element={
+                <ProtectedRoute allowedUserType="OFFICIAL">
+                  <DataResilienceCenter />
                 </ProtectedRoute>
               }
             />

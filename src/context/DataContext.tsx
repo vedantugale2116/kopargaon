@@ -26,6 +26,7 @@ import {
   initialNotifications
 } from '../lib/mockData';
 import { supabase, isSupabaseConfigured, getStorageItem, setStorageItem } from '../lib/supabase';
+import { logJournalOperation } from '../lib/resilienceEngine';
 
 interface DataContextType {
   buses: Bus[];
@@ -340,6 +341,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }).then();
     }
 
+    // Record in Immutable Resilience Operation Journal
+    logJournalOperation({
+      entity_type: 'BUS_BOOKING',
+      entity_id: bookingId,
+      operation_type: 'BUS_BOOKING_CREATED',
+      actor_user_id: bookingData.userName || 'citizen-user',
+      actor_role: 'CITIZEN',
+      payload: newBooking
+    }).catch(err => console.warn('Resilience journal notice:', err));
+
     addNotification({
       targetRole: 'CITIZEN',
       title: `Ticket Confirmed: ${bookingId}`,
@@ -461,6 +472,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }).then();
     }
 
+    // Record in Immutable Resilience Operation Journal
+    logJournalOperation({
+      entity_type: 'TRANSPORTER_TRIP',
+      entity_id: newTrip.id,
+      operation_type: 'TRIP_CREATED',
+      actor_user_id: tripData.transporterName,
+      actor_role: 'TRANSPORTER',
+      payload: newTrip
+    }).catch(err => console.warn('Resilience journal notice:', err));
+
     addNotification({
       targetRole: 'FARMER',
       title: `New Transit Capacity Available: ${newTrip.origin} → ${newTrip.destination}`,
@@ -515,6 +536,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }).then();
     }
 
+    // Record in Immutable Resilience Operation Journal
+    logJournalOperation({
+      entity_type: 'SHIPMENT',
+      entity_id: trackingNumber,
+      operation_type: 'SHIPMENT_CREATED',
+      actor_user_id: data.farmerId || 'farmer',
+      actor_role: 'FARMER',
+      payload: newShipment
+    }).catch(err => console.warn('Resilience journal notice:', err));
+
     addNotification({
       targetRole: 'TRANSPORTER',
       title: 'New Cargo Shipment Request',
@@ -549,6 +580,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return s;
     }));
+
+    // Record in Immutable Resilience Operation Journal
+    logJournalOperation({
+      entity_type: 'SHIPMENT',
+      entity_id: shipmentId,
+      operation_type: 'SHIPMENT_STATUS_CHANGED',
+      actor_user_id: 'official-or-transporter',
+      actor_role: 'SYSTEM',
+      payload: { shipmentId, status, note, updatedAt: new Date().toISOString() }
+    }).catch(err => console.warn('Resilience journal notice:', err));
 
     if (supabase && isSupabaseConfigured) {
       supabase.from('shipments').update({
@@ -684,6 +725,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }).then();
     }
 
+    // Record in Immutable Resilience Operation Journal
+    logJournalOperation({
+      entity_type: 'TRAFFIC_REPORT',
+      entity_id: newReport.id,
+      operation_type: 'TRAFFIC_REPORT_CREATED',
+      actor_user_id: reportData.userName || 'citizen',
+      actor_role: 'CITIZEN',
+      payload: newReport
+    }).catch(err => console.warn('Resilience journal notice:', err));
+
     addNotification({
       targetRole: 'OFFICIAL',
       title: `Citizen Traffic Report Under Review: ${targetRegion.name}`,
@@ -722,6 +773,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: 'ACKNOWLEDGED'
       }).eq('id', id).then();
     }
+
+    // Record in Immutable Resilience Operation Journal
+    logJournalOperation({
+      entity_type: 'TRAFFIC_REPORT',
+      entity_id: id,
+      operation_type: 'TRAFFIC_REPORT_VERIFIED',
+      actor_user_id: officialName,
+      actor_role: 'OFFICIAL',
+      payload: { id, verifiedBy: officialName, verifiedAt: verifiedTime, notes }
+    }).catch(err => console.warn('Resilience journal notice:', err));
 
     addNotification({
       targetRole: 'ALL',
@@ -839,6 +900,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         issued_by: newAlert.issuedBy
       }).then();
     }
+
+    // Record in Immutable Resilience Operation Journal
+    logJournalOperation({
+      entity_type: 'SAFETY_ALERT',
+      entity_id: newAlert.id,
+      operation_type: 'ALERT_CREATED',
+      actor_user_id: newAlert.issuedBy,
+      actor_role: 'OFFICIAL',
+      payload: newAlert
+    }).catch(err => console.warn('Resilience journal notice:', err));
 
     addNotification({
       targetRole: 'CITIZEN',
